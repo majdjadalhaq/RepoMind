@@ -21,7 +21,7 @@ const TreeNode: React.FC<{
   const isActive = activeFiles.some(f => f.name === node.path);
   const isLoading = loadingFilePaths?.includes(node.path);
 
-  const handleToggle = (e: React.MouseEvent) => {
+  const handleToggle = (e: React.MouseEvent | React.KeyboardEvent) => {
     e.stopPropagation();
     if (node.type === 'tree') {
       setIsOpen(!isOpen);
@@ -42,9 +42,17 @@ const TreeNode: React.FC<{
   return (
     <div>
       <div
+        role="button"
+        tabIndex={0}
         onClick={handleToggle}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleToggle(e);
+          }
+        }}
         className={`
-          flex items-center gap-1.5 py-1 pr-2 rounded-lg cursor-pointer transition-colors select-none
+          flex items-center gap-1.5 py-1 pr-2 rounded-lg cursor-pointer transition-colors select-none focus:outline-none focus:ring-2 focus:ring-teal-500/50
           ${isActive ? 'bg-teal-500/10' : 'hover:bg-white/5'}
         `}
         style={{ paddingLeft: `${depth * 12 + 8}px` }}

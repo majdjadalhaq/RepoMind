@@ -1,5 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
-import { FileContext, Message, LLMConfig, ThinkingMode, MODEL_PRICING } from "../core/types";
+import type { FileNode, FileContext, Message, LLMConfig, ThinkingMode } from "../core/types";
 import { estimateTokens } from "../core/utils";
 
 export interface StreamUpdate {
@@ -17,6 +17,26 @@ export interface StreamUpdate {
   };
 }
 
+interface GeminiPart {
+  text?: string;
+  inlineData?: { mimeType: string; data: string };
+  thought?: boolean;
+}
+
+interface GeminiContent {
+  role: string;
+  parts: GeminiPart[];
+}
+
+interface GenerateContentRequest {
+  model: string;
+  contents: GeminiContent[];
+  tools?: unknown[];
+  generationConfig?: Record<string, unknown>;
+  systemInstruction?: { parts: GeminiPart[] };
+  requestOptions?: { signal?: AbortSignal };
+}
+
 export async function* streamLLMResponse(
   config: LLMConfig,
   currentMessage: string,
@@ -27,14 +47,14 @@ export async function* streamLLMResponse(
   isSearchEnabled: boolean,
   isDesignMode: boolean,
   isFullRepoMode: boolean = false,
-  repoTree: any[] = [],
+  repoTree: FileNode[] = [],
   allFiles: FileContext[] = [],
   signal?: AbortSignal
 ): AsyncGenerator<StreamUpdate, void, unknown> {
   const { provider, model, apiKeys } = config;
 
   // Repo Tree Formatting Helper
-  const formatRepoTree = (nodes: any[], depth = 0): string => {
+  const formatRepoTree = (nodes: FileNode[], depth = 0): string => {
     let out = "";
     for (const node of nodes) {
       const indent = "  ".repeat(depth);
@@ -43,6 +63,7 @@ export async function* streamLLMResponse(
     }
     return out;
   };
+  const treeString = isFullRepoMode ? formatRepoTree(repoTree) : "";
   const apiKey = apiKeys[provider];
 
   if (!apiKey) {
@@ -191,13 +212,13 @@ export async function* streamLLMResponse(
 
       // Construct conversation history using strict Content format
       // Note: Google GenAI expects roles to be 'user' or 'model'
-      const contents: any[] = history.map(msg => ({
+      const contents: GeminiContent[] = history.map(msg => ({
         role: msg.role === 'user' ? 'user' : 'model',
         parts: [{ text: buildTranscript(msg) }]
       }));
 
       // Create the current user message parts
-      const currentParts: any[] = [{ text: userContext }];
+      const currentParts: GeminiPart[] = [{ text: userContext }];
 
       // Add images to the current message if any (Gemini supports: png, jpeg, webp, heic, heif)
       const supportedImageTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/heic', 'image/heif'];
@@ -211,7 +232,7 @@ export async function* streamLLMResponse(
       contents.push({ role: 'user', parts: currentParts });
 
       // Configure Request
-      const generationConfig: any = {};
+      const generationConfig: Record<string, unknown> = {};
 
       // Handle Tools (Search)
       // Note: Thinking models often don't support tools in preview
@@ -243,7 +264,7 @@ export async function* streamLLMResponse(
         generationConfig: generationConfig,
         tools: tools,
         requestOptions: { signal }
-      } as any);
+      } as GenerateContentRequest);
 
       let buffer = "";
       let inThinkingBlock = false;
@@ -255,8 +276,8 @@ export async function* streamLLMResponse(
         for (const part of parts) {
           // Note: 'thoughtSignature' is just a cryptographic hash, NOT the actual thought content
           // Only 'thought: true' parts with text contain actual reasoning (models like gemini-2.0-flash-thinking)
-          if ((part as any).thought === true) {
-            const thoughtText = (part as any).text || "";
+          if (part.thought === true) {
+            const thoughtText = part.text || "";
             if (thoughtText) {
               completionThinking += thoughtText;
               yield { thinkingDelta: thoughtText };
@@ -399,7 +420,7 @@ export async function* streamLLMResponse(
                 yield { textDelta: content };
                 hasReceivedContent = true;
               }
-            } catch (e) { }
+            } catch {}
           }
         }
       }
@@ -463,7 +484,7 @@ export async function* streamLLMResponse(
                 completionText += json.delta.text;
                 yield { textDelta: json.delta.text };
               }
-            } catch (e) { }
+            } catch {}
           }
         }
       }
@@ -479,7 +500,8 @@ export async function* streamLLMResponse(
       };
     }
 
-  } catch (error: any) {
+  } catch (err: unknown) {
+    const error = err as Error;
     if (error.name === 'AbortError' || signal?.aborted) {
       return;
     }
@@ -497,7 +519,7 @@ export async function* streamLLMResponse(
       try {
         msg += " (Model not found)";
         type = 'model';
-      } catch (e) { }
+      } catch {}
     }
 
     if (msg.toLowerCase().includes("api key") || msg.toLowerCase().includes("invalid_key")) {

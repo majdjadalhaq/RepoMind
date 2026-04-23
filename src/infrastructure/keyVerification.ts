@@ -1,14 +1,21 @@
-export interface DiscoveredModel {
-    id: string;
-    name: string;
-    hasThinking: boolean;
-    version: number;
-}
+import { DiscoveredModel } from '../core/types';
 
 export interface KeySupport {
     isValid: boolean;
     discoveredModels?: DiscoveredModel[];
     error?: string;
+}
+
+interface GoogleModel {
+  name: string;
+  displayName: string;
+  supportedGenerationMethods: string[];
+}
+
+interface OpenAIModel {
+  id: string;
+  object: string;
+  name?: string;
 }
 
 /**
@@ -28,7 +35,7 @@ export async function verifyGoogleKey(apiKey: string): Promise<KeySupport> {
         const rawModels = data.models || [];
 
         const discoveredModels: DiscoveredModel[] = rawModels
-            .filter((m: any) => {
+            .filter((m: GoogleModel) => {
                 const id = m.name.replace('models/', '').toLowerCase();
                 const displayName = m.displayName.toLowerCase();
 
@@ -45,7 +52,7 @@ export async function verifyGoogleKey(apiKey: string): Promise<KeySupport> {
                 const whitelist = ['pro', 'flash', 'preview', 'think', 'deep', 'reasoner'];
                 return whitelist.some(kw => id.includes(kw) || displayName.includes(kw));
             })
-            .map((m: any) => {
+            .map((m: GoogleModel) => {
                 const id = m.name.replace('models/', '');
                 const label = m.displayName;
 
@@ -66,8 +73,8 @@ export async function verifyGoogleKey(apiKey: string): Promise<KeySupport> {
             });
 
         return { isValid: true, discoveredModels };
-    } catch (error: any) {
-        return { isValid: false, error: error.message || "Network Error" };
+    } catch (error) {
+        return { isValid: false, error: error instanceof Error ? error.message : "Network Error" };
     }
 }
 
@@ -114,7 +121,7 @@ export async function verifyOpenAIKey(apiKey: string): Promise<KeySupport> {
         // Filter for chat models
         // Filter for chat models and clean up list
         const discoveredModels: DiscoveredModel[] = rawModels
-            .filter((m: any) => {
+            .filter((m: OpenAIModel) => {
                 const id = m.id.toLowerCase();
 
                 // Exclude specific date snapshots to keep list clean (e.g. gpt-4-0125-preview)
@@ -139,7 +146,7 @@ export async function verifyOpenAIKey(apiKey: string): Promise<KeySupport> {
                     !id.includes('nano') &&
                     !id.includes('diarize');
             })
-            .map((m: any) => {
+            .map((m: OpenAIModel) => {
                 const id = m.id;
 
                 // Better naming
@@ -165,11 +172,11 @@ export async function verifyOpenAIKey(apiKey: string): Promise<KeySupport> {
                     version: id.startsWith('o1') || id.startsWith('o3') ? 5 : 4
                 };
             })
-            .sort((a: DiscoveredModel, b: DiscoveredModel) => b.version - a.version); // Sort newer first
+            .sort((a: DiscoveredModel, b: DiscoveredModel) => (b.version || 0) - (a.version || 0)); // Sort newer first
 
         return { isValid: true, discoveredModels };
-    } catch (error: any) {
-        return { isValid: false, error: error.message || "Network Error" };
+    } catch (error) {
+        return { isValid: false, error: error instanceof Error ? error.message : "Network Error" };
     }
 }
 
@@ -214,8 +221,8 @@ export async function verifyAnthropicKey(apiKey: string): Promise<KeySupport> {
         ];
 
         return { isValid: true, discoveredModels };
-    } catch (error: any) {
-        return { isValid: false, error: error.message || "Network Error" };
+    } catch (error) {
+        return { isValid: false, error: error instanceof Error ? error.message : "Network Error" };
     }
 }
 
@@ -241,11 +248,11 @@ export async function verifyDeepSeekKey(apiKey: string): Promise<KeySupport> {
         const rawModels = data.data || [];
 
         const discoveredModels: DiscoveredModel[] = rawModels
-            .filter((m: any) => {
+            .filter((m: OpenAIModel) => {
                 const id = m.id.toLowerCase();
                 return id.includes('deepseek') && !id.includes('coder');
             })
-            .map((m: any) => {
+            .map((m: OpenAIModel) => {
                 const id = m.id;
                 const hasThinking = id.includes('reasoner') || id.includes('think');
                 return {
@@ -267,8 +274,8 @@ export async function verifyDeepSeekKey(apiKey: string): Promise<KeySupport> {
         }
 
         return { isValid: true, discoveredModels };
-    } catch (error: any) {
-        return { isValid: false, error: error.message || "Network Error" };
+    } catch (error) {
+        return { isValid: false, error: error instanceof Error ? error.message : "Network Error" };
     }
 }
 
@@ -295,7 +302,7 @@ export async function verifyOpenRouterKey(apiKey: string): Promise<KeySupport> {
 
         // Filter for a selection of powerful models
         const discoveredModels: DiscoveredModel[] = rawModels
-            .filter((m: any) => {
+            .filter((m: OpenAIModel) => {
                 const id = m.id.toLowerCase();
                 const whitelist = [
                     'anthropic/claude-3.5-sonnet',
@@ -306,7 +313,7 @@ export async function verifyOpenRouterKey(apiKey: string): Promise<KeySupport> {
                 ];
                 return whitelist.some(w => id.startsWith(w));
             })
-            .map((m: any) => {
+            .map((m: OpenAIModel) => {
                 const id = m.id;
                 const name = m.name || id;
                 const hasThinking = id.includes('r1') || id.includes('o1') || id.includes('reasoner');
@@ -320,8 +327,8 @@ export async function verifyOpenRouterKey(apiKey: string): Promise<KeySupport> {
             });
 
         return { isValid: true, discoveredModels };
-    } catch (error: any) {
-        return { isValid: false, error: error.message || "Network Error" };
+    } catch (error) {
+        return { isValid: false, error: error instanceof Error ? error.message : "Network Error" };
     }
 }
 

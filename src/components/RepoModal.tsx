@@ -1,5 +1,4 @@
 import React, { useEffect } from 'react';
-import { RepoDetails } from '../core/types';
 import { X, AlertCircle, ArrowUpRight } from 'lucide-react';
 import { motion, AnimatePresence, useSpring, useTransform } from 'motion/react';
 

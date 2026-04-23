@@ -32,33 +32,65 @@ export class GeminiAdapter extends BaseAIAdapter<GeminiChunk> {
 
     const decoder = new TextDecoder();
     let buffer = '';
-    let braceCount = 0;
-    let startIndex = -1;
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
 
-      buffer += decoder.decode(value, { stream: true });
-      
-      for (let i = 0; i < buffer.length; i++) {
-        if (buffer[i] === '{') {
-          if (braceCount === 0) startIndex = i;
-          braceCount++;
-        } else if (buffer[i] === '}') {
-          braceCount--;
-          if (braceCount === 0 && startIndex !== -1) {
-            const chunkStr = buffer.substring(startIndex, i + 1);
+        buffer += decoder.decode(value, { stream: true });
+        
+        // Gemini returns a JSON array over time: [ {chunk}, {chunk} ]
+        // We need to find valid JSON objects within the buffer
+        let startIndex = buffer.indexOf('{');
+        while (startIndex !== -1) {
+          let braceCount = 0;
+          let inString = false;
+          let escape = false;
+          let endIndex = -1;
+
+          for (let i = startIndex; i < buffer.length; i++) {
+            const char = buffer[i];
+            if (escape) {
+              escape = false;
+              continue;
+            }
+            if (char === '\\') {
+              escape = true;
+              continue;
+            }
+            if (char === '"') {
+              inString = !inString;
+              continue;
+            }
+            if (!inString) {
+              if (char === '{') braceCount++;
+              if (char === '}') braceCount--;
+              if (braceCount === 0) {
+                endIndex = i;
+                break;
+              }
+            }
+          }
+
+          if (endIndex !== -1) {
+            const chunkStr = buffer.substring(startIndex, endIndex + 1);
             try {
               const json = JSON.parse(chunkStr) as GeminiChunk;
               yield* this.mapChunkToStreamChunk(json);
-            } catch { /* Ignore */ }
-            buffer = buffer.substring(i + 1);
-            i = -1;
-            startIndex = -1;
+            } catch {
+              // Ignore partial/malformed chunks
+            }
+            buffer = buffer.substring(endIndex + 1);
+            startIndex = buffer.indexOf('{');
+          } else {
+            // Incomplete JSON object, wait for more data
+            break;
           }
         }
       }
+    } finally {
+      reader.releaseLock();
     }
   }
 

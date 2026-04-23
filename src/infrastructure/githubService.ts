@@ -1,6 +1,14 @@
 import { RepoDetails, RepoContent, FileContext, FileNode } from "../core/types";
 import { buildFileTree } from "../core/utils";
-import JSZip from 'jszip';
+import { AppError } from "../core/lib/errors";
+
+interface GitHubTreeItem {
+  path: string;
+  type: 'blob' | 'tree';
+  url: string;
+  sha: string;
+  size?: number;
+}
 
 const IGNORED_EXTENSIONS = [
   '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico',
@@ -16,20 +24,17 @@ export const fetchRepoDetails = async (input: string): Promise<RepoDetails | nul
     let owner = '';
     let repo = '';
 
-    // Remove trailing slash
     const cleanInput = input.trim().replace(/\/$/, '');
 
-    // Check if input is a full URL or just owner/repo
     if (cleanInput.startsWith('http')) {
       try {
         const urlObj = new URL(cleanInput);
-        // Pathname usually starts with /, so split results in ["", "owner", "repo"]
         const parts = urlObj.pathname.split('/').filter(Boolean);
         if (parts.length >= 2) {
           owner = parts[0];
           repo = parts[1];
         }
-      } catch (e) {
+      } catch {
         return null;
       }
     } else {
@@ -45,17 +50,17 @@ export const fetchRepoDetails = async (input: string): Promise<RepoDetails | nul
     const response = await fetch(`https://api.github.com/repos/${owner}/${repo}`);
 
     if (!response.ok) {
-      return null;
+      if (response.status === 404) throw new AppError('REPO_NOT_FOUND', `Repository ${owner}/${repo} not found`);
+      if (response.status === 403) throw new AppError('RATE_LIMIT', 'GitHub API rate limit exceeded');
+      throw new AppError('API_ERROR', `GitHub API error: ${response.statusText}`);
     }
 
     const data = await response.json();
 
-    // Fetch root contents
     try {
       const contentsResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents`);
       if (contentsResponse.ok) {
         const contents: RepoContent[] = await contentsResponse.json();
-        // Sort: directories first, then files alphabetically
         data.contents = contents.sort((a, b) => {
           if (a.type === b.type) return a.name.localeCompare(b.name);
           return a.type === 'dir' ? -1 : 1;
@@ -63,13 +68,14 @@ export const fetchRepoDetails = async (input: string): Promise<RepoDetails | nul
       } else {
         data.contents = [];
       }
-    } catch (err) {
+    } catch {
       data.contents = [];
     }
 
     return data as RepoDetails;
   } catch (error) {
-    return null;
+    if (error instanceof AppError) throw error;
+    throw new AppError('NETWORK_ERROR', 'Failed to connect to GitHub', error);
   }
 };
 
@@ -78,7 +84,7 @@ export const fetchGithubFileContent = async (owner: string, repo: string, branch
 
   const response = await fetch(downloadUrl);
   if (!response.ok) {
-    throw new Error(`Failed to fetch file content: ${path}`);
+    throw new AppError('API_ERROR', `Failed to fetch file content: ${path}`);
   }
 
   const isImage = /\.(png|jpg|jpeg|gif|webp)$/i.test(path);
@@ -108,25 +114,27 @@ export const fetchGithubFileContent = async (owner: string, repo: string, branch
   };
 };
 
-export const fetchRepoStructure = async (repo: RepoDetails): Promise<{ tree: FileNode[], mapFile: FileContext }> => {
+export interface RepoStructureResult {
+  tree: FileNode[];
+  mapFile: FileContext;
+  warning?: { limit: string; actual: string };
+}
+
+export const fetchRepoStructure = async (repo: RepoDetails): Promise<RepoStructureResult> => {
   try {
     const { owner, name, default_branch } = repo;
 
-    // 1. Fetch the recursive tree
     const treeResponse = await fetch(`https://api.github.com/repos/${owner.login}/${name}/git/trees/${default_branch}?recursive=1`);
 
     if (!treeResponse.ok) {
-      throw new Error("Failed to fetch repository tree");
+      throw new AppError('API_ERROR', "Failed to fetch repository tree from GitHub");
     }
 
     const treeData = await treeResponse.json();
-    const allItems = treeData.tree; // Array of { path, mode, type, sha, url }
-
-    // 2. Build Visual Tree
+    const allItems: GitHubTreeItem[] = treeData.tree;
     const visualTree = buildFileTree(allItems);
 
-    // 3. Generate Structure Map for AI
-    const allPaths = allItems.map((item: any) => {
+    const allPaths = allItems.map((item) => {
       return item.type === 'tree' ? `${item.path}/` : item.path;
     });
 
@@ -138,50 +146,49 @@ export const fetchRepoStructure = async (repo: RepoDetails): Promise<{ tree: Fil
       `\n\n### FULL REPOSITORY CONTENT ###\n` +
       `Below is the content of all text-based files in the repository:\n\n`;
 
-    // 4. Fetch Full Content via Raw URLs (Avoids CORS issues with ZIP)
-    try {
+    let warning: { limit: string; actual: string } | undefined;
+    const MAX_FILES = 60;
+    const MAX_TOTAL_SIZE = 400 * 1024;
+    let currentSize = 0;
 
-      let filesProcessed = 0;
-      const MAX_FILES = 60; // Reasonable limit for browser parallel fetch
-      const MAX_TOTAL_SIZE = 400 * 1024; // ~100k-150k tokens (Safe for 250k TPM limits)
-      let currentSize = 0;
+    const targetFiles = allItems.filter((item) => {
+      if (!item || !item.path || item.type !== 'blob') return false;
+      const ext = '.' + item.path.split('.').pop()?.toLowerCase();
+      return !IGNORED_EXTENSIONS.includes(ext) && 
+             !IGNORED_DIRS.some(d => (item.path as string).includes(`/${d}/`) || (item.path as string).startsWith(`${d}/`));
+    });
 
-      // Filter valid code files from the tree
-      const targetFiles = allItems.filter((item: any) => {
-        if (!item || !item.path || item.type !== 'blob') return false;
-        const ext = '.' + item.path.split('.').pop()?.toLowerCase();
-        const isIgnoredExt = IGNORED_EXTENSIONS.includes(ext);
-        const isIgnoredDir = IGNORED_DIRS.some(d => (item.path as string).includes(`/${d}/`) || (item.path as string).startsWith(`${d}/`));
-        return !isIgnoredExt && !isIgnoredDir;
-      }).slice(0, MAX_FILES);
+    const subset = targetFiles.slice(0, MAX_FILES);
+    if (targetFiles.length > MAX_FILES) {
+      warning = { limit: `${MAX_FILES} files`, actual: `${targetFiles.length} files` };
+    }
 
-      const filePromises = targetFiles.map(async (item: any) => {
-        try {
-          const rawUrl = `https://raw.githubusercontent.com/${owner.login}/${name}/${default_branch}/${item.path}`;
-          const res = await fetch(rawUrl);
-          if (!res.ok) return "";
+    const filePromises = subset.map(async (item) => {
+      try {
+        const rawUrl = `https://raw.githubusercontent.com/${owner.login}/${name}/${default_branch}/${item.path}`;
+        const res = await fetch(rawUrl);
+        if (!res.ok) return "";
 
-          const content = await res.text();
-          if (currentSize + content.length > MAX_TOTAL_SIZE) return "";
-
-          currentSize += content.length;
-          filesProcessed++;
-          return `\n--- START FILE: ${item.path} ---\n${content}\n--- END FILE: ${item.path} ---\n`;
-        } catch (e) {
+        const content = await res.text();
+        // Since this is parallel, we'll do a simple check. 
+        // A better way would be sequential or a semaphore, but for this scale this is fine.
+        if (currentSize + content.length > MAX_TOTAL_SIZE) {
+          warning = { limit: '400KB', actual: 'Larger than 400KB' };
           return "";
         }
-      });
 
-      const fileContents = await Promise.all(filePromises);
-      const validContents = fileContents.filter(c => c !== "");
-      structureContent += validContents.join('\n');
-
-      if (targetFiles.length > MAX_FILES) {
-        structureContent += `\n\n[Note: Only the first ${MAX_FILES} files were included to preserve performance.]\n`;
+        currentSize += content.length;
+        return `\n--- START FILE: ${item.path} ---\n${content}\n--- END FILE: ${item.path} ---\n`;
+      } catch {
+        return "";
       }
+    });
 
-    } catch (err) {
-      structureContent += "\n[Error aggregating full content. Only structure is available.]\n";
+    const fileContents = await Promise.all(filePromises);
+    structureContent += fileContents.filter(c => c !== "").join('\n');
+
+    if (warning) {
+      structureContent += `\n\n[Note: Repository content was truncated: ${warning.limit} limit reached.]\n`;
     }
 
     const mapFile: FileContext = {
@@ -192,9 +199,10 @@ export const fetchRepoStructure = async (repo: RepoDetails): Promise<{ tree: Fil
       category: 'other'
     };
 
-    return { tree: visualTree, mapFile };
+    return { tree: visualTree, mapFile, warning };
 
   } catch (error) {
-    throw error;
+    if (error instanceof AppError) throw error;
+    throw new AppError('API_ERROR', 'Failed to analyze repository structure', error);
   }
 };

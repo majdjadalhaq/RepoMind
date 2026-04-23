@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { LLMConfig, AVAILABLE_MODELS, LLMProvider, LLMModel, MODEL_PRICING } from '../core/types';
+import { AVAILABLE_MODELS, MODEL_PRICING, LLMProvider, LLMModel } from '../core/types';
 import { Check, ChevronDown, Cpu, Zap, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 

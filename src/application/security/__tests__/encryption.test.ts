@@ -18,10 +18,15 @@ if (!global.crypto) {
 describe('EncryptionService', () => {
   let service: EncryptionService;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     service = new EncryptionService();
-    // Mock getMasterKey to avoid DB dependency in unit tests
-    vi.spyOn(service, 'getMasterKey').mockResolvedValue({} as CryptoKey);
+    // Generate a real key for testing to satisfy SubtleCrypto's internal type checks
+    const testKey = await crypto.subtle.generateKey(
+      { name: "AES-GCM", length: 256 },
+      true,
+      ["encrypt", "decrypt"]
+    );
+    vi.spyOn(service, 'getMasterKey').mockResolvedValue(testKey);
   });
 
   it('should encrypt and return a base64 string', async () => {
