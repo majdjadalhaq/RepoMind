@@ -14,6 +14,7 @@ build/
 .turbo/
 *.tsbuildinfo
 next-env.d.ts
+tsconfig.tsbuildinfo
 .cache/
 .rscinfo
 
@@ -39,7 +40,8 @@ lerna-debug.log*
 .gemini/
 .cursor/
 .worktrees/
-docs/superpowers/
+docs/
+metadata.json
 
 # Editor directories and files
 .vscode/*

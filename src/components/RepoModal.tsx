@@ -1,65 +1,136 @@
-import React, { useState } from 'react';
-import { Button } from './ui/Button';
+import React, { useEffect } from 'react';
+import { RepoDetails } from '../core/types';
+import { X, AlertCircle, ArrowUpRight } from 'lucide-react';
+import { motion, AnimatePresence, useSpring, useTransform } from 'motion/react';
 
 interface RepoModalProps {
-  onConnect: (url: string) => Promise<void>;
+  isOpen: boolean;
   onClose: () => void;
-  isLoading?: boolean;
-  error?: string | null;
+  repo: RepoDetails | null;
+  isLoading: boolean;
+  onAttachRepo: () => void;
 }
 
-export const RepoModal: React.FC<RepoModalProps> = ({ onConnect, onClose, isLoading, error }) => {
-  const [url, setUrl] = useState('');
+export const RepoModal: React.FC<RepoModalProps> = ({ isOpen, onClose, repo, isLoading, onAttachRepo }) => {
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!url.trim() || isLoading) return;
-    await onConnect(url.trim());
-  };
+  // Animations handled via Framer Motion components and hooks below
+  const starsValue = useSpring(0, { stiffness: 40, damping: 10 });
+  const forksValue = useSpring(0, { stiffness: 40, damping: 10 });
+  const issuesValue = useSpring(0, { stiffness: 40, damping: 10 });
+
+  useEffect(() => {
+    if (isOpen && repo) {
+      starsValue.set(repo.stargazers_count);
+      forksValue.set(repo.forks_count);
+      issuesValue.set(repo.open_issues_count);
+    } else {
+      starsValue.set(0);
+      forksValue.set(0);
+      issuesValue.set(0);
+    }
+  }, [isOpen, repo, starsValue, forksValue, issuesValue]);
+
+  const starsFormatted = useTransform(starsValue, (v: number) => new Intl.NumberFormat('en-US', { notation: "compact" }).format(Math.round(v)));
+  const forksFormatted = useTransform(forksValue, (v: number) => new Intl.NumberFormat('en-US', { notation: "compact" }).format(Math.round(v)));
+  const issuesFormatted = useTransform(issuesValue, (v: number) => new Intl.NumberFormat('en-US', { notation: "compact" }).format(Math.round(v)));
+
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-6 bg-primary/80 backdrop-blur-xl">
-      <div className="w-full max-w-xl glass-panel p-10 rounded-3xl shadow-2xl border border-glass-border">
-        <div className="flex items-center gap-4 mb-8">
-          <div className="w-12 h-12 rounded-2xl bg-cyan-primary/10 flex items-center justify-center border border-cyan-primary/20">
-            <svg className="w-6 h-6 text-cyan-primary" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 2A10 10 0 0 0 2 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.87 1.52 2.34 1.07 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.92 0-1.11.38-2 1.03-2.71-.1-.25-.45-1.29.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.35.2 2.39.1 2.64.65.71 1.03 1.6 1.03 2.71 0 3.82-2.34 4.66-4.57 4.91.36.31.69.92.69 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0 0 12 2z" />
-            </svg>
-          </div>
-          <div>
-            <h2 className="text-2xl font-bold text-primary">Index Repository</h2>
-            <p className="text-sm text-text-muted">Connect a GitHub project to start analyzing code.</p>
-          </div>
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-white/80 dark:bg-black/80 backdrop-blur-xl">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ type: "spring", stiffness: 100, damping: 15 }}
+            className="relative w-full max-w-md bg-white dark:bg-black rounded-3xl border border-gray-100 dark:border-white/10 shadow-2xl overflow-hidden"
+          >
+            <button
+              onClick={onClose}
+              className="absolute top-6 right-6 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 text-gray-400 hover:text-black dark:hover:text-white transition-all z-10"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {isLoading ? (
+              <div className="p-12 flex flex-col items-center justify-center gap-6 min-h-[400px]">
+                <div className="relative">
+                  <div className="w-16 h-16 border-4 border-gray-100 dark:border-zinc-800 rounded-full"></div>
+                  <div className="absolute inset-0 border-4 border-black dark:border-white border-t-transparent rounded-full animate-spin"></div>
+                </div>
+                <p className="text-lg font-display font-bold tracking-tight">Syncing Repository...</p>
+              </div>
+            ) : repo ? (
+              <div className="p-8">
+                <div className="w-16 h-16 rounded-2xl bg-gray-50 dark:bg-zinc-900 border border-gray-100 dark:border-white/10 flex items-center justify-center mb-6">
+                  <img
+                    src={repo.owner.avatar_url}
+                    alt={repo.owner.login}
+                    className="w-10 h-10 rounded-lg"
+                  />
+                </div>
+
+                <h2 className="text-2xl font-display font-bold text-black dark:text-white leading-tight mb-2">
+                  {repo.name}
+                </h2>
+                <p className="text-sm text-gray-400 font-medium mb-8">
+                  {repo.full_name}
+                </p>
+
+                <div className="grid grid-cols-3 gap-3 mb-8">
+                  <div className="p-4 rounded-2xl bg-gray-50 dark:bg-zinc-900 text-center">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Stars</p>
+                    <motion.p className="text-xl font-display font-bold text-black dark:text-white">
+                      {starsFormatted}
+                    </motion.p>
+                  </div>
+                  <div className="p-4 rounded-2xl bg-gray-50 dark:bg-zinc-900 text-center">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Forks</p>
+                    <motion.p className="text-xl font-display font-bold text-black dark:text-white">
+                      {forksFormatted}
+                    </motion.p>
+                  </div>
+                  <div className="p-4 rounded-2xl bg-gray-50 dark:bg-zinc-900 text-center">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Issues</p>
+                    <motion.p className="text-xl font-display font-bold text-black dark:text-white">
+                      {issuesFormatted}
+                    </motion.p>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-3">
+                  <button
+                    onClick={onAttachRepo}
+                    className="w-full py-4 rounded-xl bg-black dark:bg-white text-white dark:text-black font-bold text-sm hover:scale-[1.02] transition-transform shadow-xl"
+                  >
+                    Start Analysis
+                  </button>
+                  <a
+                    href={repo.html_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 w-full py-4 rounded-xl bg-gray-50 dark:bg-zinc-900 text-black dark:text-white font-bold text-sm hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
+                  >
+                    View on GitHub <ArrowUpRight className="w-4 h-4" />
+                  </a>
+                </div>
+
+              </div>
+            ) : (
+              <div className="p-12 text-center min-h-[300px] flex flex-col items-center justify-center">
+                <div className="w-16 h-16 rounded-full bg-red-50 dark:bg-red-900/20 flex items-center justify-center mb-6">
+                  <AlertCircle className="w-8 h-8 text-red-500" />
+                </div>
+                <h3 className="text-xl font-display font-bold text-black dark:text-white mb-2">Not Found</h3>
+                <p className="text-gray-400">
+                  We couldn't locate that repository. Please check the permissions or URL.
+                </p>
+              </div>
+            )}
+          </motion.div>
         </div>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="relative group">
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-primary/20 to-purple-500/20 rounded-xl blur opacity-0 group-focus-within:opacity-100 transition duration-500" />
-            <input 
-              autoFocus
-              type="text"
-              placeholder="https://github.com/username/repo"
-              className="relative w-full bg-secondary border border-glass-border rounded-xl p-5 text-primary outline-none focus:border-cyan-primary/50 transition-all"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-            />
-          </div>
-
-          {error && (
-            <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-xs flex items-center gap-3">
-              <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-              {error}
-            </div>
-          )}
-
-          <div className="flex gap-4">
-            <Button variant="ghost" className="flex-1" onClick={onClose} type="button">Cancel</Button>
-            <Button className="flex-1" isLoading={isLoading} type="submit">Index Project</Button>
-          </div>
-        </form>
-      </div>
-    </div>
+      )}
+    </AnimatePresence>
   );
 };

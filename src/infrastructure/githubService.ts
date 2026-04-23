@@ -1,5 +1,5 @@
-import { RepoDetails, RepoContent, FileContext, FileNode } from "../types";
-import { buildFileTree } from "../utils";
+import { RepoDetails, RepoContent, FileContext, FileNode } from "../core/types";
+import { buildFileTree } from "../core/utils";
 import JSZip from 'jszip';
 
 const IGNORED_EXTENSIONS = [
