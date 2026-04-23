@@ -67,7 +67,6 @@ export async function verifyGoogleKey(apiKey: string): Promise<KeySupport> {
 
         return { isValid: true, discoveredModels };
     } catch (error: any) {
-        console.error("Google key verification failed:", error);
         return { isValid: false, error: error.message || "Network Error" };
     }
 }
@@ -170,7 +169,6 @@ export async function verifyOpenAIKey(apiKey: string): Promise<KeySupport> {
 
         return { isValid: true, discoveredModels };
     } catch (error: any) {
-        console.error("OpenAI key verification failed:", error);
         return { isValid: false, error: error.message || "Network Error" };
     }
 }
@@ -217,7 +215,6 @@ export async function verifyAnthropicKey(apiKey: string): Promise<KeySupport> {
 
         return { isValid: true, discoveredModels };
     } catch (error: any) {
-        console.error("Anthropic key verification failed:", error);
         return { isValid: false, error: error.message || "Network Error" };
     }
 }
@@ -271,7 +268,6 @@ export async function verifyDeepSeekKey(apiKey: string): Promise<KeySupport> {
 
         return { isValid: true, discoveredModels };
     } catch (error: any) {
-        console.error("DeepSeek key verification failed:", error);
         return { isValid: false, error: error.message || "Network Error" };
     }
 }
@@ -325,7 +321,6 @@ export async function verifyOpenRouterKey(apiKey: string): Promise<KeySupport> {
 
         return { isValid: true, discoveredModels };
     } catch (error: any) {
-        console.error("OpenRouter key verification failed:", error);
         return { isValid: false, error: error.message || "Network Error" };
     }
 }
