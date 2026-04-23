@@ -38,6 +38,8 @@ lerna-debug.log*
 .agent/
 .gemini/
 .cursor/
+.worktrees/
+docs/superpowers/
 
 # Editor directories and files
 .vscode/*
