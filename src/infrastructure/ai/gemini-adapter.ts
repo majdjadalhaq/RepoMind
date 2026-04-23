@@ -14,7 +14,7 @@ export class GeminiAdapter extends BaseAIAdapter<GeminiChunk> {
         parts: [{ text: m.content }]
       }));
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${config.model}:streamGenerateContent?key=${config.apiKey}`, {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${config.model}:streamGenerateContent?alt=sse&key=${config.apiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
@@ -40,52 +40,23 @@ export class GeminiAdapter extends BaseAIAdapter<GeminiChunk> {
 
         buffer += decoder.decode(value, { stream: true });
         
-        // Gemini returns a JSON array over time: [ {chunk}, {chunk} ]
-        // We need to find valid JSON objects within the buffer
-        let startIndex = buffer.indexOf('{');
-        while (startIndex !== -1) {
-          let braceCount = 0;
-          let inString = false;
-          let escape = false;
-          let endIndex = -1;
+        // SSE sends lines starting with "data: "
+        const lines = buffer.split('\n');
+        // Keep the last incomplete line in the buffer
+        buffer = lines.pop() || '';
 
-          for (let i = startIndex; i < buffer.length; i++) {
-            const char = buffer[i];
-            if (escape) {
-              escape = false;
-              continue;
-            }
-            if (char === '\\') {
-              escape = true;
-              continue;
-            }
-            if (char === '"') {
-              inString = !inString;
-              continue;
-            }
-            if (!inString) {
-              if (char === '{') braceCount++;
-              if (char === '}') braceCount--;
-              if (braceCount === 0) {
-                endIndex = i;
-                break;
-              }
-            }
-          }
-
-          if (endIndex !== -1) {
-            const chunkStr = buffer.substring(startIndex, endIndex + 1);
-            try {
-              const json = JSON.parse(chunkStr) as GeminiChunk;
-              yield* this.mapChunkToStreamChunk(json);
-            } catch {
-              // Ignore partial/malformed chunks
-            }
-            buffer = buffer.substring(endIndex + 1);
-            startIndex = buffer.indexOf('{');
-          } else {
-            // Incomplete JSON object, wait for more data
-            break;
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed.startsWith('data: ')) continue;
+          
+          const dataStr = trimmed.slice(6);
+          if (dataStr === '[DONE]') continue;
+          
+          try {
+            const json = JSON.parse(dataStr) as GeminiChunk;
+            yield* this.mapChunkToStreamChunk(json);
+          } catch {
+            // Ignore malformed JSON chunks
           }
         }
       }

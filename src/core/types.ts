@@ -11,6 +11,7 @@ export interface FileContext {
   type: string;
   content: string; // Base64 for images, raw text for code
   category: 'code' | 'image' | 'other';
+  warning?: { limit: string; actual: string };
 }
 
 export interface DiscoveredModel {

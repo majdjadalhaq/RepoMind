@@ -196,7 +196,8 @@ export const fetchRepoStructure = async (repo: RepoDetails): Promise<RepoStructu
       name: 'REPOSITORY_MAP.md',
       type: 'text/markdown',
       content: structureContent,
-      category: 'other'
+      category: 'other',
+      warning
     };
 
     return { tree: visualTree, mapFile, warning };
