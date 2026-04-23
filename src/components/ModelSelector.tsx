@@ -1,12 +1,12 @@
 import React, { useState, useRef } from 'react';
-import { LLMConfig, AVAILABLE_MODELS, LLMProvider, LLMModel, MODEL_PRICING } from '../types';
-import { Check, ChevronDown, Cpu, Zap, AlertTriangle, Settings } from 'lucide-react';
+import { LLMConfig, AVAILABLE_MODELS, LLMProvider, LLMModel, MODEL_PRICING } from '../core/types';
+import { Check, ChevronDown, Cpu, Zap, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface ModelSelectorProps {
   config: LLMConfig;
   onConfigChange: (newConfig: LLMConfig) => void;
-  capabilities: any;
+  capabilities: Partial<Record<LLMProvider, { discoveredModels: LLMModel[] }>>;
 }
 
 const isValidKey = (provider: string, key: string) => {
@@ -83,7 +83,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({ config, onConfigCh
                       if (provider === 'google' && isLive) {
                         finalModels = discoveredModels;
                       } else if (isLive) {
-                        const discoveredIds = new Set(discoveredModels.map((m: any) => m.id));
+                        const discoveredIds = new Set(discoveredModels.map((m: LLMModel) => m.id));
                         finalModels = [...discoveredModels, ...hardcodedModels.filter(m => !discoveredIds.has(m.id))];
                       }
 

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useMemo, memo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Message, AVAILABLE_MODELS } from '../types';
+import { Message, AVAILABLE_MODELS } from '../core/types';
 import { User, Check, Copy, Sparkles, ArrowRight, BrainCircuit, ChevronDown, Code2, Layout, Download, MoreVertical, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { MermaidRenderer } from './MermaidRenderer';
@@ -199,7 +199,7 @@ const MessageItem = memo(({ msg, supportsThinking, showThinking, isDesignMode, i
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `kittle-message-${msg.timestamp}.md`;
+    a.download = `repomind-message-${msg.timestamp}.md`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

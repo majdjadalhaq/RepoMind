@@ -1,6 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
-import { FileContext, Message, LLMConfig, ThinkingMode, MODEL_PRICING } from "../types";
-import { estimateTokens } from "../utils";
+import { FileContext, Message, LLMConfig, ThinkingMode, MODEL_PRICING } from "../core/types";
+import { estimateTokens } from "../core/utils";
 
 export interface StreamUpdate {
   textDelta?: string;
@@ -357,7 +357,7 @@ export async function* streamLLMResponse(
           "Authorization": `Bearer ${apiKey}`,
           ...(provider === 'openrouter' ? {
             "HTTP-Referer": window.location.origin,
-            "X-Title": "Kittle AI"
+            "X-Title": "RepoMind AI"
           } : {})
         },
         signal: signal,

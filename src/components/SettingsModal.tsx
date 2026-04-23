@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { LLMConfig, LLMProvider } from '../types';
-import { Key, Check, X, XCircle, ExternalLink, Loader2, BarChart3, TrendingUp, DollarSign, Zap, Settings, Shield, Activity, ChevronRight, Globe, Lock, Sun, Moon } from 'lucide-react';
+import { LLMConfig, LLMProvider, StoredConversation } from '../core/types';
+import { Check, X, XCircle, ExternalLink, Loader2, Zap, Settings, Shield, Activity, Globe, Lock, Sun, Moon } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { verifyKey } from '../services/keyVerification';
+import { verifyKey } from '../infrastructure/keyVerification';
 
 interface SettingsModalProps {
     isOpen: boolean;
@@ -15,7 +15,7 @@ interface SettingsModalProps {
         totalCost: number;
     };
     modelUsage: Record<string, { promptTokens: number; completionTokens: number; totalCost: number }>;
-    conversations: any[];
+    conversations: StoredConversation[];
     onResetUsage: () => void;
     onFullReset: () => void;
     isDark: boolean;
@@ -408,7 +408,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                                                 <div>
                                                     <h4 className="text-xs font-black text-black/30 dark:text-white/30 uppercase tracking-[0.2em] mb-4">Adaptive Aesthetics</h4>
                                                     <p className="text-[11px] font-bold text-black/40 dark:text-white/40 leading-relaxed max-w-md">
-                                                        Kittle automatically synchronizes its interface with your neural preferences. Transitions are mathematically smoothed for maximum optical comfort.
+                                                        <span className="font-bold text-black dark:text-white">RepoMind</span> automatically synchronizes its interface with your neural preferences. Transitions are mathematically smoothed for maximum optical comfort.
                                                     </p>
                                                 </div>
                                             </div>

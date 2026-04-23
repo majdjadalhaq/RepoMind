@@ -1,10 +1,10 @@
 <div align="center">
-  <img src="public/favicon.png" width="80" height="80" alt="RepoMind Logo" />
-  <h1>✨ RepoMind</h1>
+  <img src="public/favicon.png" width="120" height="120" alt="RepoMind Logo" />
+  <h1>RepoMind</h1>
   <p><strong>The Ultimate AI-Powered Code Intelligence Hub</strong></p>
 
   <p>
-    <a href="https://temrevil.github.io/RepoMind/"><img src="https://img.shields.io/badge/Live-Demo-brightgreen?style=for-the-badge&logo=github" alt="Live Demo" /></a>
+    <a href="https://majd.github.io/RepoMind/"><img src="https://img.shields.io/badge/Live-Demo-brightgreen?style=for-the-badge&logo=github" alt="Live Demo" /></a>
     <a href="https://nextjs.org"><img src="https://img.shields.io/badge/Next.js-15-black?style=for-the-badge&logo=next.js" alt="Next.js" /></a>
     <a href="https://www.typescriptlang.org"><img src="https://img.shields.io/badge/TypeScript-5.0-blue?style=for-the-badge&logo=typescript" alt="TypeScript" /></a>
     <a href="https://tailwindcss.com"><img src="https://img.shields.io/badge/Tailwind_CSS-4.0-38B2AC?style=for-the-badge&logo=tailwind-css" alt="Tailwind" /></a>
@@ -63,7 +63,7 @@ graph TD
 
 1.  **Clone the repository**
     ```bash
-    git clone https://github.com/TemRevil/RepoMind.git
+    git clone https://github.com/majd/RepoMind.git
     cd RepoMind
     ```
 
@@ -101,5 +101,6 @@ We ❤️ contributions! Whether you're fixing a bug, adding a provider, or impr
 ---
 
 <div align="center">
-  <sub>Built with ❤️ by TemRevil</sub>
+  <sub>Built with ❤️ by Majd</sub>
 </div>
+

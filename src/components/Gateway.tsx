@@ -1,133 +1,249 @@
 import React, { useState } from 'react';
-import { useApiKeys } from '../presentation/hooks/use-api-keys';
-import { Button } from './ui/Button';
-import { LLMProvider } from '../core/types/ai';
+import { LLMConfig, LLMProvider } from '../core/types';
+import { Key, Check, ArrowRight, XCircle, ExternalLink, Loader2 } from 'lucide-react';
+import { motion } from 'motion/react';
+import { verifyKey } from '../infrastructure/keyVerification';
 
 interface GatewayProps {
-  onComplete?: () => void;
+  initialConfig: LLMConfig;
+  onComplete: (config: LLMConfig) => void;
 }
 
-export const Gateway: React.FC<GatewayProps> = ({ onComplete }) => {
-  const { keys, updateKey } = useApiKeys();
-  const [editingProvider, setEditingProvider] = useState<LLMProvider | null>(null);
-  const [inputValue, setInputValue] = useState('');
+// Validation logic (Basic Format Check)
+const isValidKeyFormat = (provider: string, key: string) => {
+  if (!key || key.trim() === '') return false;
+  const trimmed = key.trim();
 
-  const providers: { id: LLMProvider; name: string; icon: string }[] = [
-    { id: 'openai', name: 'OpenAI', icon: '⚡' },
-    { id: 'anthropic', name: 'Anthropic', icon: '🧠' },
-    { id: 'google', name: 'Google Gemini', icon: '💎' },
-    { id: 'deepseek', name: 'DeepSeek', icon: '🔍' },
-    { id: 'openrouter', name: 'OpenRouter', icon: '🌐' },
-  ];
+  switch (provider) {
+    case 'google':
+      return trimmed.startsWith('AIza') && trimmed.length > 30;
+    case 'openai':
+      return trimmed.startsWith('sk-') && trimmed.length > 30;
+    case 'anthropic':
+      return trimmed.startsWith('sk-ant') && trimmed.length > 30;
+    case 'deepseek':
+      return trimmed.startsWith('sk-') && trimmed.length > 20;
+    case 'openrouter':
+      return trimmed.startsWith('sk-or-') && trimmed.length > 30;
+    default:
+      return false;
+  }
+};
 
-  const handleSave = async () => {
-    if (editingProvider) {
-      await updateKey(editingProvider, inputValue);
-      setEditingProvider(null);
-      setInputValue('');
+// API Key links
+const API_LINKS: Record<LLMProvider, { url: string; label: string }> = {
+  google: { url: 'https://aistudio.google.com/apikey', label: 'Google AI' },
+  openai: { url: 'https://platform.openai.com/api-keys', label: 'OpenAI Platform' },
+  anthropic: { url: 'https://console.anthropic.com/settings/keys', label: 'Anthropic Console' },
+  deepseek: { url: 'https://platform.deepseek.com/api_keys', label: 'DeepSeek Platform' },
+  openrouter: { url: 'https://openrouter.ai/keys', label: 'OpenRouter' }
+};
+
+export const Gateway: React.FC<GatewayProps> = ({ initialConfig, onComplete }) => {
+  const [customKeys, setCustomKeys] = useState(initialConfig.apiKeys);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [verifiedProviders, setVerifiedProviders] = useState<Set<string>>(new Set());
+
+  const handleStart = async () => {
+    setIsVerifying(true);
+    setValidationErrors({});
+    const newVerified = new Set<string>();
+    let firstValidProvider: LLMProvider | null = null;
+    let errors: Record<string, string> = {};
+
+    const providersToCheck = (['google', 'openai', 'anthropic', 'deepseek', 'openrouter'] as LLMProvider[])
+      .filter(p => isValidKeyFormat(p, customKeys[p]));
+
+    await Promise.all(providersToCheck.map(async (provider) => {
+      const key = customKeys[provider];
+      const result = await verifyKey(provider, key);
+
+      if (result.isValid) {
+        newVerified.add(provider);
+        if (!firstValidProvider) firstValidProvider = provider;
+      } else {
+        errors[provider] = result.error || "Authorization failed";
+      }
+    }));
+
+    setVerifiedProviders(newVerified);
+    setValidationErrors(errors);
+    setIsVerifying(false);
+
+    if (firstValidProvider && Object.keys(errors).length === 0) {
+      // Determine default model based on provider
+      let model = 'gemini-2.0-flash-exp';
+      if (firstValidProvider === 'openai') model = 'gpt-4o';
+      if (firstValidProvider === 'anthropic') model = 'claude-3-5-sonnet-latest';
+      if (firstValidProvider === 'deepseek') model = 'deepseek-reasoner';
+      if (firstValidProvider === 'openrouter') model = 'anthropic/claude-3.5-sonnet';
+
+      const newConfig: LLMConfig = {
+        provider: firstValidProvider,
+        model,
+        apiKeys: customKeys
+      };
+
+      // Delay slightly to show success state
+      setTimeout(() => {
+        onComplete(newConfig);
+      }, 500);
     }
   };
 
+  // Check if at least one key matches the basic format
+  const hasFormatValidKey = Object.entries(customKeys).some(([provider, key]) => isValidKeyFormat(provider, key as string));
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-primary/80 backdrop-blur-xl">
-      <div className="w-full max-w-2xl glass-panel p-12 rounded-3xl flex flex-col items-center relative">
-        <div className="flex items-center justify-center gap-6 mb-12">
-          <div className="w-16 h-16 rounded-2xl bg-cyan-primary/10 flex items-center justify-center border border-cyan-primary/20">
-             <img src="/favicon.png" alt="Logo" className="w-10 h-10" />
-          </div>
-          <h1 className="text-5xl font-black tracking-tighter text-primary">Initialize <span className="text-cyan-primary">epo</span>Mind</h1>
-        </div>
-        
-        {onComplete && (
-          <button 
-            onClick={onComplete}
-            className="absolute top-8 right-8 p-3 rounded-full hover:bg-secondary text-text-muted transition-colors"
-            aria-label="Close Settings"
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0, scale: 0.95, filter: 'blur(10px)' }}
+      transition={{ duration: 0.6 }}
+      className="fixed inset-0 z-[100] bg-white dark:bg-black overflow-y-auto transition-colors duration-500"
+    >
+      <div className="min-h-full flex items-center justify-center p-4 md:p-6">
+        <div className="max-w-xl w-full">
+          {/* Header */}
+          <div
+            className="text-center mb-12 md:mb-16"
           >
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        )}
-        <p className="text-text-muted mb-12 text-center max-w-md">
-          Enter your API keys to unlock the intelligence hub. Your keys are encrypted locally and never leave your browser.
-        </p>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
-          {providers.map((p) => (
-            <div 
-              key={p.id}
-              className={`p-5 rounded-2xl border transition-all duration-300 flex items-center gap-4 ${
-                keys[p.id] 
-                  ? 'bg-cyan-primary/5 border-cyan-primary/20 shadow-sm' 
-                  : 'bg-glass-bg border-glass-border hover:border-text-muted'
-              }`}
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.1, type: "spring", stiffness: 100 }}
+              className="relative w-24 h-24 mx-auto mb-10"
             >
-              <div className="text-2xl">{p.icon}</div>
-              <div className="flex-1">
-                <div className="text-sm font-bold text-primary">{p.name}</div>
-                <div className="text-xs text-text-muted">
-                  {keys[p.id] ? 'Connected' : 'Not Configured'}
-                </div>
+              <div className="absolute inset-0 bg-cyan-primary/20 blur-2xl rounded-full animate-pulse" />
+              <div className="relative w-full h-full rounded-3xl bg-white dark:bg-zinc-900 border border-gray-100 dark:border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.2)] flex items-center justify-center overflow-hidden">
+                <img src="/favicon.png" alt="RepoMind" className="w-12 h-12 object-contain" />
               </div>
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={() => {
-                  setEditingProvider(p.id);
-                  setInputValue(keys[p.id] || '');
-                }}
-              >
-                {keys[p.id] ? 'Edit' : 'Setup'}
-              </Button>
-            </div>
-          ))}
-        </div>
+            </motion.div>
 
-        {editingProvider && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/40 backdrop-blur-2xl transition-all duration-300">
-            <div className="w-full max-w-md bg-secondary border border-glass-border p-10 rounded-3xl shadow-[0_32px_64px_-15px_rgba(0,0,0,0.5)] transform scale-100 animate-in fade-in zoom-in duration-200">
-              <div className="mb-8">
-                <h3 className="text-2xl font-bold text-primary mb-2">Setup {editingProvider}</h3>
-                <p className="text-xs text-text-muted">Enter your secure API credentials to begin.</p>
-              </div>
-              <input 
-                autoFocus
-                type="password"
-                placeholder="Paste API Key here..."
-                className="w-full bg-primary border border-glass-border rounded-2xl p-5 text-primary focus:ring-2 focus:ring-cyan-primary outline-none mb-8 text-sm placeholder:opacity-30"
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-              />
-              <div className="flex gap-4">
-                <Button variant="ghost" className="flex-1 h-12" onClick={() => setEditingProvider(null)}>Cancel</Button>
-                <Button className="flex-1 h-12" onClick={handleSave}>Save Identity</Button>
-              </div>
-            </div>
+            <h1 className="text-5xl md:text-8xl font-display font-bold text-black dark:text-white mb-6 tracking-tighter leading-none">
+              Repo<span className="text-gray-400 dark:text-zinc-700/50">Mind</span>
+            </h1>
+            <p className="text-gray-500 text-lg md:text-xl font-medium max-w-lg mx-auto leading-relaxed">
+              Your codebase, <span className="text-black dark:text-white">decoded.</span><br />
+              The ultimate AI orchestrator for modern engineers.
+            </p>
           </div>
-        )}
 
-        <div className="mt-12 flex flex-col items-center gap-6">
-          <Button 
-            variant="ghost" 
-            className="text-cyan-primary border-cyan-primary/20 hover:bg-cyan-primary/10"
-            onClick={() => updateKey('openai', 'mock-key')}
+          {/* API Keys Form */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, type: "spring", stiffness: 100, damping: 15 }}
+            className="bg-white dark:bg-black border border-gray-100 dark:border-zinc-800 p-6 md:p-10 rounded-[2rem] shadow-2xl shadow-gray-200/50 dark:shadow-none relative overflow-hidden"
           >
-            🚀 Try with Mock Intelligence
-          </Button>
+            {/* Background Decoration */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-gray-100 to-transparent dark:from-zinc-900/50 rounded-bl-full -mr-16 -mt-16 pointer-events-none"></div>
 
-          <div className="flex items-center gap-4 text-xs text-text-muted">
-            <div className="flex items-center gap-1">
-              <svg className="w-4 h-4 text-cyan-primary" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
-              Non-extractable Storage
+            <div className="flex items-center gap-3 mb-8 relative z-10">
+              <div className="p-3 rounded-xl bg-black dark:bg-white text-white dark:text-black">
+                <Key className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold font-display text-black dark:text-white">API Configuration</h3>
+                <p className="text-xs text-gray-400 font-medium">Add at least one API key to continue</p>
+              </div>
             </div>
-            <div className="w-1 h-1 bg-glass-border rounded-full" />
-            <div>AES-256-GCM Encryption</div>
-          </div>
+
+            <div className="space-y-5 mb-8 relative z-10">
+              {(['google', 'openai', 'anthropic', 'deepseek', 'openrouter'] as const).map(provider => {
+                const key = customKeys[provider];
+                const formatValid = isValidKeyFormat(provider, key);
+                const hasValue = key.length > 0;
+                const link = API_LINKS[provider];
+                const isVerified = verifiedProviders.has(provider);
+                const error = validationErrors[provider];
+
+                return (
+                  <div key={provider} className="group">
+                    <div className="flex items-center justify-between mb-2 pl-1">
+                      <div className="flex items-center gap-2">
+                        <label className={`text-[11px] font-bold uppercase tracking-widest transition-colors ${hasValue
+                          ? (error ? 'text-red-500' : (isVerified ? 'text-green-500' : 'text-gray-600 dark:text-gray-300'))
+                          : 'text-gray-400'
+                          }`}>
+                          {provider}
+                        </label>
+                        {isVerified && <Check className="w-3 h-3 text-green-500 animate-in zoom-in" />}
+                        {error && <XCircle className="w-3 h-3 text-red-500 animate-in zoom-in" />}
+                      </div>
+                      <a
+                        href={link.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-[10px] font-bold text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 transition-colors uppercase tracking-wide"
+                      >
+                        Get Key <ExternalLink className="w-2.5 h-2.5" />
+                      </a>
+                    </div>
+                    <input
+                      type="password"
+                      placeholder={provider === 'google' ? 'AIza...' : (provider === 'openrouter' ? 'sk-or-...' : 'sk-...')}
+                      value={customKeys[provider]}
+                      onChange={(e) => {
+                        setCustomKeys({ ...customKeys, [provider]: e.target.value });
+                        // Clear errors/verification status on change
+                        if (validationErrors[provider]) {
+                          const newErrors = { ...validationErrors };
+                          delete newErrors[provider];
+                          setValidationErrors(newErrors);
+                        }
+                        if (verifiedProviders.has(provider)) {
+                          const newVerified = new Set(verifiedProviders);
+                          newVerified.delete(provider);
+                          setVerifiedProviders(newVerified);
+                        }
+                      }}
+                      className={`w-full px-5 py-4 rounded-2xl bg-gray-50 dark:bg-zinc-900 border focus:bg-white dark:focus:bg-black outline-none transition-all font-mono text-sm
+                         ${error
+                          ? 'border-red-200 dark:border-red-900/50 text-red-600 focus:ring-4 focus:ring-red-50 dark:focus:ring-red-900/20'
+                          : (isVerified
+                            ? 'border-green-200 dark:border-green-900/30 ring-1 ring-green-100 dark:ring-green-900/20'
+                            : 'border-transparent focus:border-gray-200 dark:focus:border-zinc-700 focus:ring-4 focus:ring-gray-100 dark:focus:ring-zinc-800')}
+                      `}
+                    />
+                    {error && (
+                      <p className="text-[10px] text-red-500 mt-1.5 ml-1 font-medium animate-in slide-in-from-top-1">
+                        {error}
+                      </p>
+                    )}
+                    {hasValue && !formatValid && !error && (
+                      <p className="text-[10px] text-orange-500 mt-1.5 ml-1 font-medium">
+                        Invalid format. Expecting {provider === 'google' ? 'AIza...' : (provider === 'openrouter' ? 'sk-or-...' : 'sk-...')}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            <button
+              onClick={handleStart}
+              disabled={!hasFormatValidKey || isVerifying}
+              className="relative z-10 w-full py-5 bg-black dark:bg-white text-white dark:text-black rounded-2xl font-bold text-lg hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:hover:scale-100 disabled:cursor-not-allowed transition-all shadow-xl flex items-center justify-center gap-3"
+            >
+              {isVerifying ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" /> Verifying Keys...
+                </>
+              ) : (
+                <>
+                  Launch Workspace <ArrowRight className="w-5 h-5" />
+                </>
+              )}
+            </button>
+
+            <p className="text-center text-[10px] text-gray-400 mt-4 font-medium">
+              Your API keys are stored locally and never sent to our servers.
+            </p>
+          </motion.div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };

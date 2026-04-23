@@ -1,11 +1,12 @@
 import React, { useEffect, useRef, useState, useCallback, memo } from 'react';
 import { createPortal } from 'react-dom';
 import mermaid from 'mermaid';
-import { Maximize2, X, ZoomIn, ZoomOut, Download, Loader2, AlertCircle } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { Maximize2, X, ZoomIn, ZoomOut, Download, AlertCircle } from 'lucide-react';
+import { motion } from 'motion/react';
 
 interface MermaidRendererProps {
     code: string;
+    /** @deprecated Remove when ChatArea is rewritten in Phase 2 (PR #9-12) */
     isGenerating?: boolean;
 }
 
@@ -25,8 +26,7 @@ const getDistance = (t1: React.Touch, t2: React.Touch) => {
 };
 
 // Memoize to prevent re-renders when code hasn't changed
-export const MermaidRenderer = memo<MermaidRendererProps>(function MermaidRenderer({ code, isGenerating }) {
-    const containerRef = useRef<HTMLDivElement>(null);
+export const MermaidRenderer = memo<MermaidRendererProps>(function MermaidRenderer({ code }) {
     const [svg, setSvg] = useState<string>('');
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
