@@ -121,11 +121,6 @@ export async function* streamLLMResponse(
   if (githubLink) systemLines.push(`Context Repo: ${githubLink}`);
 
   if (isFullRepoMode && repoTree.length > 0) {
-    const treeString = formatRepoTree(repoTree);
-    console.groupCollapsed(`[LLM] 👁️ Full Repo Context (Structure) - ${repoTree.length} root items`);
-    console.log(treeString);
-    console.groupEnd();
-
     systemLines.push("### FULL REPO CONTEXT (STRUCTURE ONLY) ###");
     systemLines.push("The text below shows the COMPLETE file structure of the connected repository.");
     systemLines.push("IMPORTANT: You do NOT have the content of these files, only their names/paths.");
@@ -135,7 +130,6 @@ export async function* streamLLMResponse(
   }
 
   if (activeFiles.length > 0) {
-    console.log(`[LLM] 📂 Attached Files (Content Sent):`, activeFiles.map(f => f.name));
     systemLines.push("CRITICAL CONTEXT: The user has attached specific files. You MUST read and analyze these files deeply.");
     systemLines.push("Refuse to hallucinate. If the answer is in the files, cite it. If not, say so.");
   }
@@ -487,7 +481,6 @@ export async function* streamLLMResponse(
 
   } catch (error: any) {
     if (error.name === 'AbortError' || signal?.aborted) {
-      console.log("[LLM] Stream aborted by user.");
       return;
     }
     let msg = error.message || "Failed to fetch response";
@@ -502,14 +495,7 @@ export async function* streamLLMResponse(
     // Diagnostic: If 404, try to list models to console
     if (msg.includes("404") && provider === 'google') {
       try {
-        const ai = new GoogleGenAI({ apiKey });
-        const result = await ai.models.list();
-        console.warn("DIAGNOSTIC - Available Models for your key:");
-        const modelList = (result as any).models || result;
-        if (modelList && typeof modelList.forEach === 'function') {
-          modelList.forEach((m: any) => console.warn(` - ${m.name}`));
-        }
-        msg += " (Model not found. Available models listed in console)";
+        msg += " (Model not found)";
         type = 'model';
       } catch (e) { }
     }

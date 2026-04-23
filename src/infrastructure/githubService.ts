@@ -30,7 +30,6 @@ export const fetchRepoDetails = async (input: string): Promise<RepoDetails | nul
           repo = parts[1];
         }
       } catch (e) {
-        console.error("Invalid URL format");
         return null;
       }
     } else {
@@ -46,11 +45,6 @@ export const fetchRepoDetails = async (input: string): Promise<RepoDetails | nul
     const response = await fetch(`https://api.github.com/repos/${owner}/${repo}`);
 
     if (!response.ok) {
-      if (response.status === 404) {
-        console.warn("Repository not found (or is private).");
-      } else if (response.status === 403) {
-        console.warn("GitHub API rate limit exceeded.");
-      }
       return null;
     }
 
@@ -70,13 +64,11 @@ export const fetchRepoDetails = async (input: string): Promise<RepoDetails | nul
         data.contents = [];
       }
     } catch (err) {
-      console.warn("Failed to fetch repo contents:", err);
       data.contents = [];
     }
 
     return data as RepoDetails;
   } catch (error) {
-    console.error("Error fetching repo details:", error);
     return null;
   }
 };
@@ -124,7 +116,6 @@ export const fetchRepoStructure = async (repo: RepoDetails): Promise<{ tree: Fil
     const treeResponse = await fetch(`https://api.github.com/repos/${owner.login}/${name}/git/trees/${default_branch}?recursive=1`);
 
     if (!treeResponse.ok) {
-      console.warn("Failed to fetch recursive tree.");
       throw new Error("Failed to fetch repository tree");
     }
 
@@ -149,7 +140,6 @@ export const fetchRepoStructure = async (repo: RepoDetails): Promise<{ tree: Fil
 
     // 4. Fetch Full Content via Raw URLs (Avoids CORS issues with ZIP)
     try {
-      console.log("Fetching full repo content via raw channels...");
 
       let filesProcessed = 0;
       const MAX_FILES = 60; // Reasonable limit for browser parallel fetch
@@ -164,8 +154,6 @@ export const fetchRepoStructure = async (repo: RepoDetails): Promise<{ tree: Fil
         const isIgnoredDir = IGNORED_DIRS.some(d => (item.path as string).includes(`/${d}/`) || (item.path as string).startsWith(`${d}/`));
         return !isIgnoredExt && !isIgnoredDir;
       }).slice(0, MAX_FILES);
-
-      console.log(`Queueing ${targetFiles.length} files for parallel fetch...`);
 
       const filePromises = targetFiles.map(async (item: any) => {
         try {
@@ -188,14 +176,11 @@ export const fetchRepoStructure = async (repo: RepoDetails): Promise<{ tree: Fil
       const validContents = fileContents.filter(c => c !== "");
       structureContent += validContents.join('\n');
 
-      console.log(`Successfully merged ${filesProcessed} files into context. Total size: ${(currentSize / 1024).toFixed(1)}KB`);
-
       if (targetFiles.length > MAX_FILES) {
         structureContent += `\n\n[Note: Only the first ${MAX_FILES} files were included to preserve performance.]\n`;
       }
 
     } catch (err) {
-      console.warn("Failed to aggregate repo contents:", err);
       structureContent += "\n[Error aggregating full content. Only structure is available.]\n";
     }
 
@@ -210,7 +195,6 @@ export const fetchRepoStructure = async (repo: RepoDetails): Promise<{ tree: Fil
     return { tree: visualTree, mapFile };
 
   } catch (error) {
-    console.error("Error in fetchRepoStructure:", error);
     throw error;
   }
 };
