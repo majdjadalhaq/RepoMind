@@ -1,5 +1,27 @@
 import type { Metadata } from "next";
+import { Outfit, Space_Grotesk, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+
+const fontOutfit = Outfit({
+    subsets: ['latin'],
+    display: 'swap',
+    variable: '--font-outfit',
+    weight: ['300', '400', '500', '600', '700', '800'],
+});
+
+const fontSpaceGrotesk = Space_Grotesk({
+    subsets: ['latin'],
+    display: 'swap',
+    variable: '--font-space-grotesk',
+    weight: ['300', '400', '500', '600', '700'],
+});
+
+const fontJetBrainsMono = JetBrains_Mono({
+    subsets: ['latin'],
+    display: 'swap',
+    variable: '--font-jetbrains-mono',
+    weight: ['400', '500'],
+});
 
 export const metadata: Metadata = {
     title: "RepoMind",
@@ -12,15 +34,9 @@ export default function RootLayout({
     children: React.ReactNode;
 }>) {
     return (
-        <html lang="en" suppressHydrationWarning>
+        <html lang="en" suppressHydrationWarning className={`${fontOutfit.variable} ${fontSpaceGrotesk.variable} ${fontJetBrainsMono.variable}`}>
             <head>
                 <link rel="icon" type="image/png" href="/favicon.png" />
-                <link rel="preconnect" href="https://fonts.googleapis.com" />
-                <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-                <link
-                    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Outfit:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@300;400;500;600;700&display=swap"
-                    rel="stylesheet"
-                />
             </head>
             <body className="antialiased selection:bg-cyan-primary/30" suppressHydrationWarning>
                 {children}
