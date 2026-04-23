@@ -4,7 +4,22 @@ import remarkGfm from 'remark-gfm';
 import { Message, AVAILABLE_MODELS, LLMModel, DiscoveredModel } from '../core/types';
 import { User, Check, Copy, Sparkles, ArrowRight, ChevronDown, Download, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { MermaidRenderer } from './MermaidRenderer';
+import dynamic from 'next/dynamic';
+
+const MermaidRenderer = dynamic(
+  () => import('./MermaidRenderer').then((mod) => mod.MermaidRenderer),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="p-4 my-4 bg-gray-50 dark:bg-zinc-900 rounded-xl animate-pulse flex items-center justify-center min-h-[200px] border border-gray-100 dark:border-white/10">
+        <span className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+          <div className="w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+          Loading Diagram Engine...
+        </span>
+      </div>
+    )
+  }
+);
 
 import { useChatStore } from '../application/store/chat-store';
 import { useUIStore } from '../application/store/ui-store';
