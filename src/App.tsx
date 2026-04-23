@@ -5,16 +5,16 @@ import { RepoModal } from './components/RepoModal';
 import { ModelSelector } from './components/ModelSelector';
 import { Gateway } from './components/Gateway';
 import { SettingsModal } from './components/SettingsModal';
-import type { FileContext, Message, LLMConfig, LLMProvider, StoredConversation, LLMModel, FileNode } from './core/types';
+import type { Message, LLMConfig, LLMModel, StoredConversation, FileContext, FileNode } from './core/types';
 import { AVAILABLE_MODELS, MODEL_PRICING } from './core/types';
 import { readFile } from './core/utils';
-import { streamLLMResponse } from './infrastructure/llmFactory';
 import { fetchRepoStructure, fetchGithubFileContent } from './infrastructure/githubService';
-import { verifyKey } from './infrastructure/keyVerification';
+import { streamLLMResponse } from './infrastructure/llmFactory';
 import { useUIStore } from './application/store/ui-store';
 import { useRepoStore } from './application/store/repo-store';
 import { useConfigStore } from './application/store/config-store';
 import { useChatStore } from './application/store/chat-store';
+import { useInitialization } from './presentation/hooks/use-initialization';
 import { Paperclip, Menu, X, XCircle, ArrowUp, Loader2, Globe, Layers, Zap, BrainCircuit, CheckSquare, Box, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -34,22 +34,22 @@ const App: React.FC = () => {
     thinkingMode, setThinkingMode,
     quotaError, setQuotaError,
     isOnboarding, setIsOnboarding,
-    isInitializing, setIsInitializing,
+    isInitializing
   } = useUIStore();
 
   const {
-    setIsRepoLoading,
-    repoDetails, setRepoDetails,
+    githubRepoLink, 
     repoTree, setRepoTree,
-    githubRepoLink, setGithubRepoLink,
+    repoDetails, 
     loadingFilePaths, setLoadingFilePaths,
+    setIsRepoLoading,
     truncationWarning, setTruncationWarning
   } = useRepoStore();
 
   const {
     llmConfig, setLLMConfig,
     keyCapabilities,
-    totalUsage, modelUsage, updateUsage
+    updateUsage
   } = useConfigStore();
 
   const {
@@ -86,142 +86,7 @@ const App: React.FC = () => {
 
 
 
-  // Initialization Logic
-  useEffect(() => {
-    const initApp = async () => {
-      const setupComplete = localStorage.getItem('app_setup_complete');
-      const savedKeysStr = localStorage.getItem('llm_api_keys');
-      const savedConversations = localStorage.getItem('chat_history');
-      const savedUsage = localStorage.getItem('total_usage');
-      const savedCurrentId = localStorage.getItem('current_conv_id');
-      const savedConfig = localStorage.getItem('llm_config');
-
-      // 1. Initial State Load
-      if (savedUsage) {
-        try {
-          JSON.parse(savedUsage);
-          // Set via store if possible, but for now we'll just use the object
-        } catch {}
-      }
-
-      if (savedConversations) {
-        try {
-          const parsed = JSON.parse(savedConversations);
-          setConversations(parsed);
-          
-          if (savedCurrentId) {
-            const lastConv = parsed.find((c: StoredConversation) => c.id === savedCurrentId);
-            if (lastConv) {
-              setCurrentConversationId(savedCurrentId);
-              setMessages(lastConv.messages);
-              setActiveFiles(lastConv.activeFiles);
-              setGithubRepoLink(lastConv.githubRepoLink);
-              setRepoDetails(lastConv.repoDetails);
-              setRepoTree(lastConv.repoTree || []);
-            }
-          }
-        } catch {}
-      }
-
-      // 2. Load keys/config
-      let nextConfig = { ...useConfigStore.getState().llmConfig };
-      if (savedKeysStr) {
-        try {
-          const parsedKeys = JSON.parse(savedKeysStr);
-          nextConfig = { ...nextConfig, apiKeys: { ...nextConfig.apiKeys, ...parsedKeys } };
-          
-          if (savedConfig) {
-            const parsedConfig = JSON.parse(savedConfig);
-            nextConfig = { ...nextConfig, ...parsedConfig };
-          }
-          setLLMConfig(nextConfig);
-        } catch {}
-      }
-
-      // 3. Authorization Check
-      if (setupComplete) {
-        const providers: LLMProvider[] = ['google', 'openai', 'anthropic', 'deepseek', 'openrouter'];
-        let allProvidedKeysValid = true;
-        let atLeastOneKey = false;
-
-        for (const provider of providers) {
-          const key = nextConfig.apiKeys[provider];
-          if (key && key.trim().length > 0) {
-            atLeastOneKey = true;
-            if (key.length > 20) {
-              const result = await verifyKey(provider, key);
-              if (!result.isValid) allProvidedKeysValid = false;
-            } else {
-              allProvidedKeysValid = false;
-            }
-          }
-        }
-
-        const onlyHasDefaultKey = nextConfig.apiKeys.google === process.env.NEXT_PUBLIC_API_KEY &&
-          !nextConfig.apiKeys.openai && !nextConfig.apiKeys.anthropic && !nextConfig.apiKeys.deepseek && !nextConfig.apiKeys.openrouter;
-
-        if (atLeastOneKey && allProvidedKeysValid && !onlyHasDefaultKey) {
-          setIsOnboarding(false);
-        } else {
-          // console.warn("Invalid, missing, or default keys detected on startup, forcing onboarding.");
-          setIsOnboarding(true);
-        }
-      } else {
-        setIsOnboarding(true);
-      }
-
-      setIsInitializing(false);
-    };
-
-    initApp();
-  }, []);
-
-  // Save conversations to localStorage
-  useEffect(() => {
-    localStorage.setItem('chat_history', JSON.stringify(conversations));
-    localStorage.setItem('total_usage', JSON.stringify(totalUsage));
-    localStorage.setItem('model_usage', JSON.stringify(modelUsage));
-    if (currentConversationId) {
-      localStorage.setItem('current_conv_id', currentConversationId);
-    }
-  }, [conversations, totalUsage, modelUsage, currentConversationId]);
-
-  // Sync current state to conversations in store
-  useEffect(() => {
-    if (!currentConversationId || isLoading) return;
-
-    const existing = conversations.find(c => c.id === currentConversationId);
-    if (!existing) return;
-
-    // Check if change is needed
-    if (
-      JSON.stringify(existing.messages) === JSON.stringify(messages) &&
-      existing.activeFiles.length === activeFiles.length &&
-      existing.githubRepoLink === githubRepoLink
-    ) {
-      return;
-    }
-
-    const updatedConversations = conversations.map(c => {
-      if (c.id === currentConversationId) {
-        return {
-          ...c,
-          messages,
-          activeFiles,
-          githubRepoLink,
-          repoDetails,
-          repoTree,
-          lastModified: Date.now()
-        };
-      }
-      return c;
-    });
-
-    setConversations(updatedConversations);
-  }, [messages, activeFiles, githubRepoLink, repoDetails, currentConversationId, isLoading]);
-
-
-
+  useInitialization();
 
 
   const handleFullReset = () => {
