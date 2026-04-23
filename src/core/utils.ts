@@ -9,7 +9,7 @@ const getPdfLib = async () => {
   const lib = await import("pdfjs-dist");
   pdfLib = lib.default || lib;
   (pdfLib as Record<string, unknown>).GlobalWorkerOptions = (pdfLib as Record<string, unknown>).GlobalWorkerOptions || {};
-  ((pdfLib as Record<string, unknown>).GlobalWorkerOptions as Record<string, unknown>).workerSrc = 'https://esm.sh/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+  ((pdfLib as Record<string, unknown>).GlobalWorkerOptions as Record<string, unknown>).workerSrc = '/pdf.worker.min.js';
   return pdfLib as Record<string, unknown>;
 };
 
