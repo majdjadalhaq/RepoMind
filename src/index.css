@@ -1,0 +1,88 @@
+@import "tailwindcss";
+
+@theme {
+  --color-obsidian: oklch(15% 0.02 250);
+  --color-obsidian-lighter: oklch(20% 0.02 250);
+  --color-obsidian-lightest: oklch(25% 0.02 250);
+  --color-cyan-primary: oklch(70% 0.2 200);
+  --color-cyan-glow: oklch(70% 0.2 200 / 0.15);
+  --color-glass-border: oklch(100% 0 0 / 0.1);
+  --color-glass-bg: oklch(100% 0 0 / 0.03);
+
+  --font-sans: "Inter", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "Fira Code", monospace;
+
+  --spacing-8: 2rem;
+  --spacing-12: 3rem;
+  --spacing-16: 4rem;
+}
+
+:root {
+  /* Dark Mode (Default) */
+  --bg-primary: var(--color-obsidian);
+  --bg-secondary: var(--color-obsidian-lighter);
+  --text-primary: oklch(98% 0 0);
+  --text-secondary: oklch(80% 0.01 250);
+  --text-muted: oklch(65% 0.01 250);
+  --glass-border: oklch(100% 0 0 / 0.1);
+  --glass-bg: oklch(100% 0 0 / 0.03);
+  --panel-shadow: 0 8px 32px 0 oklch(0% 0 0 / 0.3);
+}
+
+.light, [data-theme='light'] {
+  --bg-primary: oklch(98% 0.01 250);
+  --bg-secondary: oklch(94% 0.01 250);
+  --text-primary: oklch(20% 0.02 250);
+  --text-secondary: oklch(40% 0.02 250);
+  --text-muted: oklch(55% 0.02 250);
+  --glass-border: oklch(0% 0 0 / 0.08);
+  --glass-bg: oklch(0% 0 0 / 0.02);
+  --panel-shadow: 0 8px 32px 0 oklch(0% 0 0 / 0.05);
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Fluid Typography */
+h1 { font-size: clamp(2rem, 5vw, 3.5rem); line-height: 1.1; font-weight: 800; letter-spacing: -0.02em; }
+h2 { font-size: clamp(1.5rem, 4vw, 2.25rem); line-height: 1.2; font-weight: 700; letter-spacing: -0.01em; }
+p { font-size: clamp(1rem, 1.2vw, 1.125rem); line-height: 1.6; color: var(--text-secondary); }
+
+/* Liquid Glass Utilities */
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--panel-shadow);
+}
+
+.cyan-glow {
+  box-shadow: 0 0 20px var(--color-cyan-glow);
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--bg-secondary);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-cyan-primary);
+}
+
+/* Entrance Animations Base */
+.reveal-init {
+  opacity: 0;
+  transform: translateY(20px);
+}
