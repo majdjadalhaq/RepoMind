@@ -11,8 +11,13 @@ interface UIState {
   isFullRepoMode: boolean;
   showThinking: boolean;
   thinkingMode: ThinkingMode;
+  quotaError: { type: 'quota' | 'model'; message: string; model: string; originalPrompt: string; userMessageId: string } | null;
+  isOnboarding: boolean;
+  isInitializing: boolean;
   
   // Actions
+  setIsOnboarding: (isOnboarding: boolean) => void;
+  setIsInitializing: (isInitializing: boolean) => void;
   setIsRepoModalOpen: (isOpen: boolean) => void;
   setIsSettingsOpen: (isOpen: boolean) => void;
   setIsMobileMenuOpen: (isOpen: boolean) => void;
@@ -23,6 +28,7 @@ interface UIState {
   setIsFullRepoMode: (isEnabled: boolean) => void;
   setShowThinking: (show: boolean) => void;
   setThinkingMode: (mode: ThinkingMode) => void;
+  setQuotaError: (error: { type: 'quota' | 'model'; message: string; model: string; originalPrompt: string; userMessageId: string } | null) => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -35,7 +41,12 @@ export const useUIStore = create<UIState>((set) => ({
   isFullRepoMode: false,
   showThinking: false,
   thinkingMode: 'concise',
+  quotaError: null,
+  isOnboarding: true,
+  isInitializing: true,
 
+  setIsOnboarding: (isOnboarding) => set({ isOnboarding }),
+  setIsInitializing: (isInitializing) => set({ isInitializing }),
   setIsRepoModalOpen: (isRepoModalOpen) => set({ isRepoModalOpen }),
   setIsSettingsOpen: (isSettingsOpen) => set({ isSettingsOpen }),
   setIsMobileMenuOpen: (isMobileMenuOpen) => set({ isMobileMenuOpen }),
@@ -46,4 +57,5 @@ export const useUIStore = create<UIState>((set) => ({
   setIsFullRepoMode: (isFullRepoMode) => set({ isFullRepoMode }),
   setShowThinking: (showThinking) => set({ showThinking }),
   setThinkingMode: (thinkingMode) => set({ thinkingMode }),
+  setQuotaError: (quotaError) => set({ quotaError }),
 }));

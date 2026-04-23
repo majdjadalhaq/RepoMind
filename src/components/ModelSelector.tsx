@@ -3,10 +3,9 @@ import { LLMConfig, AVAILABLE_MODELS, LLMProvider, LLMModel, MODEL_PRICING } fro
 import { Check, ChevronDown, Cpu, Zap, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
+import { useConfigStore } from '../application/store/config-store';
+
 interface ModelSelectorProps {
-  config: LLMConfig;
-  onConfigChange: (newConfig: LLMConfig) => void;
-  capabilities: Partial<Record<LLMProvider, { discoveredModels: LLMModel[] }>>;
 }
 
 const isValidKey = (provider: string, key: string) => {
@@ -22,7 +21,9 @@ const isValidKey = (provider: string, key: string) => {
   }
 };
 
-export const ModelSelector: React.FC<ModelSelectorProps> = ({ config, onConfigChange, capabilities }) => {
+export const ModelSelector: React.FC<ModelSelectorProps> = () => {
+  const { llmConfig: config, setLLMConfig: onConfigChange, keyCapabilities: capabilities } = useConfigStore();
+
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 

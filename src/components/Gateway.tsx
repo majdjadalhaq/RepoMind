@@ -4,8 +4,9 @@ import { Key, Check, ArrowRight, XCircle, ExternalLink, Loader2 } from 'lucide-r
 import { motion } from 'motion/react';
 import { verifyKey } from '../infrastructure/keyVerification';
 
+import { useConfigStore } from '../application/store/config-store';
+
 interface GatewayProps {
-  initialConfig: LLMConfig;
   onComplete: (config: LLMConfig) => void;
 }
 
@@ -39,7 +40,9 @@ const API_LINKS: Record<LLMProvider, { url: string; label: string }> = {
   openrouter: { url: 'https://openrouter.ai/keys', label: 'OpenRouter' }
 };
 
-export const Gateway: React.FC<GatewayProps> = ({ initialConfig, onComplete }) => {
+export const Gateway: React.FC<GatewayProps> = ({ onComplete }) => {
+  const { llmConfig: initialConfig } = useConfigStore();
+
   const [customKeys, setCustomKeys] = useState(initialConfig.apiKeys);
   const [isVerifying, setIsVerifying] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});

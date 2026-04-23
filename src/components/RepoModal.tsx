@@ -3,15 +3,19 @@ import { RepoDetails } from '../core/types';
 import { X, AlertCircle, ArrowUpRight } from 'lucide-react';
 import { motion, AnimatePresence, useSpring, useTransform } from 'motion/react';
 
+import { useRepoStore } from '../application/store/repo-store';
+import { useUIStore } from '../application/store/ui-store';
+
 interface RepoModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  repo: RepoDetails | null;
-  isLoading: boolean;
   onAttachRepo: () => void;
 }
 
-export const RepoModal: React.FC<RepoModalProps> = ({ isOpen, onClose, repo, isLoading, onAttachRepo }) => {
+export const RepoModal: React.FC<RepoModalProps> = ({ onAttachRepo }) => {
+  const { isRepoModalOpen: isOpen, setIsRepoModalOpen } = useUIStore();
+  const { repoDetails: repo, isRepoLoading: isLoading } = useRepoStore();
+  
+  const onClose = () => setIsRepoModalOpen(false);
+
 
   // Animations handled via Framer Motion components and hooks below
   const starsValue = useSpring(0, { stiffness: 40, damping: 10 });

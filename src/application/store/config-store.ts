@@ -55,15 +55,36 @@ export const useConfigStore = create<ConfigState>((set) => ({
   },
   modelUsage: {},
 
-  setLLMConfig: (config) => set((state) => ({ 
-    llmConfig: { ...state.llmConfig, ...config } 
-  })),
+  setLLMConfig: (config) => set((state) => {
+    const nextConfig = { ...state.llmConfig, ...config };
+    
+    // If apiKeys are being updated, also update apiKeysDates
+    if (config.apiKeys) {
+      const updatedDates = { ...nextConfig.apiKeysDates };
+      const providers: LLMProvider[] = ['google', 'openai', 'anthropic', 'deepseek', 'openrouter'];
+      
+      providers.forEach(p => {
+        if (config.apiKeys?.[p] && config.apiKeys[p] !== state.llmConfig.apiKeys[p]) {
+          updatedDates[p] = Date.now();
+        }
+      });
+      nextConfig.apiKeysDates = updatedDates;
+    }
+    
+    return { llmConfig: nextConfig };
+  }),
 
   setApiKey: (provider, key) => set((state) => {
     const apiKeys = { ...state.llmConfig.apiKeys, [provider]: key };
     const apiKeysDates = { ...state.llmConfig.apiKeysDates, [provider]: Date.now() };
+    const apiKeysFirstUsed = { ...state.llmConfig.apiKeysFirstUsed };
+    
+    if (!apiKeysFirstUsed[provider] && key) {
+      apiKeysFirstUsed[provider] = Date.now();
+    }
+    
     return { 
-      llmConfig: { ...state.llmConfig, apiKeys, apiKeysDates } 
+      llmConfig: { ...state.llmConfig, apiKeys, apiKeysDates, apiKeysFirstUsed } 
     };
   }),
 
