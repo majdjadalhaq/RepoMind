@@ -9,7 +9,8 @@ export const useGithubConnect = () => {
     repoDetails,
     repoTree, setRepoTree,
     loadingFilePaths, setLoadingFilePaths,
-    setIsRepoLoading
+    setIsRepoLoading,
+    setTruncationWarning
   } = useRepoStore();
 
   const {
@@ -26,10 +27,14 @@ export const useGithubConnect = () => {
     setIsRepoLoading(true);
 
     try {
-      const { tree, mapFile } = await fetchRepoStructure(repoDetails);
+      const { tree, mapFile, warning } = await fetchRepoStructure(repoDetails);
 
       setRepoTree(tree);
       setActiveFiles([...activeFiles.filter(f => f.name !== 'REPOSITORY_MAP.md'), mapFile]);
+      
+      if (warning) {
+        setTruncationWarning(warning);
+      }
 
       setIsRepoModalOpen(false);
     } catch {
