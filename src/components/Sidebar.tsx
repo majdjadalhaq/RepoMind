@@ -4,53 +4,58 @@ import { Trash2, FileCode, FileImage, Plus, Sun, Moon, Settings, MessageSquare, 
 import { FileExplorer } from './FileExplorer';
 import { motion } from 'motion/react';
 
+import { useUIStore } from '../application/store/ui-store';
+import { useRepoStore } from '../application/store/repo-store';
+import { useChatStore } from '../application/store/chat-store';
+import { useConfigStore } from '../application/store/config-store';
+
 interface SidebarProps {
-  files: FileContext[];
-  repoTree: FileNode[];
-  onRemoveFile: (id: string) => void;
-  onAddFiles: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  /** @deprecated Remove when App.tsx is decomposed in Phase 2 (PR #9-12) */
-  githubLink?: string;
-  /** @deprecated Remove when App.tsx is decomposed in Phase 2 (PR #9-12) */
-  onGithubLinkChange?: (val: string) => void;
-  /** @deprecated Remove when App.tsx is decomposed in Phase 2 (PR #9-12) */
-  onGithubEnter?: () => void;
-  isDark: boolean;
-  toggleTheme: () => void;
   className?: string;
-  onRepoFileClick: (path: string) => void;
-  onSelectAllFiles?: () => void;
-  /** @deprecated Remove when App.tsx is decomposed in Phase 2 (PR #9-12) */
-  isRepoLocked?: boolean;
-  loadingFilePaths?: string[];
-  onOpenSettings: () => void;
-  conversations: StoredConversation[];
-  currentConversationId: string | null;
-  onSelectConversation: (id: string) => void;
-  onDeleteConversation: (id: string) => void;
-  onNewChat: () => void;
+  onAddFiles: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
-  files,
-  repoTree,
-  onRemoveFile,
-  onAddFiles,
-  isDark,
-  toggleTheme,
   className,
-  onRepoFileClick,
-  onSelectAllFiles,
-  loadingFilePaths,
-  onOpenSettings,
-  conversations,
-  currentConversationId,
-  onSelectConversation,
-  onDeleteConversation,
-  onNewChat
+  onAddFiles,
 }) => {
   const [activeTab, setActiveTab] = useState<'context' | 'explorer' | 'history'>('context');
   const [historySort, setHistorySort] = useState<'time' | 'tokens'>('time');
+
+  const { isDark, toggleDark, setIsSettingsOpen } = useUIStore();
+  const { 
+    repoTree, 
+    githubRepoLink, 
+    setGithubRepoLink, 
+    repoDetails, 
+    loadingFilePaths 
+  } = useRepoStore();
+  const { 
+    activeFiles, 
+    setActiveFiles, 
+    conversations, 
+    currentConversationId, 
+    selectConversation, 
+    deleteConversation, 
+    newConversation 
+  } = useChatStore();
+
+  const onRemoveFile = (id: string) => setActiveFiles(activeFiles.filter(f => f.id !== id));
+  const toggleTheme = () => toggleDark();
+  const onOpenSettings = () => setIsSettingsOpen(true);
+  const onSelectConversation = (id: string) => selectConversation(id);
+  const onDeleteConversation = (id: string) => deleteConversation(id);
+  const onNewChat = () => newConversation();
+
+  // Mock for now or replace with real logic if available
+  const onRepoFileClick = (path: string) => {
+    // This will be handled by a store action in a future refinement
+  };
+  const onSelectAllFiles = () => {
+    // This will be handled by a store action in a future refinement
+  };
+  const handleGithubEnter = () => {
+    // This will be handled by a store action in a future refinement
+  };
 
   return (
     <div className={`flex flex-col h-full ${className}`}>

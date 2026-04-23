@@ -6,14 +6,16 @@ import { User, Check, Copy, Sparkles, ArrowRight, BrainCircuit, ChevronDown, Cod
 import { motion, AnimatePresence } from 'motion/react';
 import { MermaidRenderer } from './MermaidRenderer';
 
+import { useChatStore } from '../application/store/chat-store';
+import { useUIStore } from '../application/store/ui-store';
+import { useConfigStore } from '../application/store/config-store';
+
 interface ChatAreaProps {
-  messages: Message[];
   onSuggestionClick: (text: string) => void;
-  showThinking: boolean;
-  supportsThinking: boolean;
-  isDesignMode: boolean;
-  isLoading: boolean;
 }
+
+// ... CodeBlock, ThinkingSection, LiveTimer, MessageItem stay the same (but update MessageItem props if needed) ...
+
 
 // --- Components ---
 
@@ -316,13 +318,27 @@ const MessageItem = memo(({ msg, supportsThinking, showThinking, isDesignMode, i
 // --- Main ChatArea ---
 
 export const ChatArea: React.FC<ChatAreaProps> = ({
-  messages,
-  isLoading,
   onSuggestionClick,
-  showThinking,
-  supportsThinking,
-  isDesignMode
 }) => {
+  const { messages, isLoading } = useChatStore();
+  const { showThinking, isDesignMode } = useUIStore();
+  const { llmConfig, keyCapabilities } = useConfigStore();
+
+  const currentModelDef = AVAILABLE_MODELS[llmConfig.provider]?.find(m => m.id === llmConfig.model);
+  const discoveredModelDef = keyCapabilities?.[llmConfig.provider]?.discoveredModels?.find((m: any) => m.id === llmConfig.model);
+
+  const supportsThinking = !!(
+    currentModelDef?.hasThinking ||
+    discoveredModelDef?.hasThinking ||
+    llmConfig.model.includes('gemini-2.5') ||
+    llmConfig.model.includes('gemini-3') ||
+    llmConfig.model.includes('thinking') ||
+    llmConfig.model.includes('reasoner') ||
+    llmConfig.model.includes('think') ||
+    llmConfig.model.includes('deep') ||
+    llmConfig.model.includes('o1')
+  );
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 

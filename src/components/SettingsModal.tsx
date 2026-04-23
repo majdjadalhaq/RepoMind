@@ -4,22 +4,12 @@ import { Check, X, XCircle, ExternalLink, Loader2, Zap, Settings, Shield, Activi
 import { motion, AnimatePresence } from 'motion/react';
 import { verifyKey } from '../infrastructure/keyVerification';
 
+import { useConfigStore } from '../application/store/config-store';
+import { useUIStore } from '../application/store/ui-store';
+import { useChatStore } from '../application/store/chat-store';
+
 interface SettingsModalProps {
-    isOpen: boolean;
-    onClose: () => void;
-    config: LLMConfig;
-    onConfigChange: (newConfig: LLMConfig) => void;
-    totalUsage: {
-        promptTokens: number;
-        completionTokens: number;
-        totalCost: number;
-    };
-    modelUsage: Record<string, { promptTokens: number; completionTokens: number; totalCost: number }>;
-    conversations: StoredConversation[];
-    onResetUsage: () => void;
     onFullReset: () => void;
-    isDark: boolean;
-    onToggleTheme: () => void;
 }
 
 const API_LINKS: Record<LLMProvider, { url: string; label: string }> = {
@@ -31,18 +21,14 @@ const API_LINKS: Record<LLMProvider, { url: string; label: string }> = {
 };
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
-    isOpen,
-    onClose,
-    config,
-    onConfigChange,
-    totalUsage,
-    modelUsage,
-    conversations,
-    onResetUsage,
     onFullReset,
-    isDark,
-    onToggleTheme
 }) => {
+    const { llmConfig: config, setLLMConfig: onConfigChange, totalUsage, modelUsage, resetUsage: onResetUsage } = useConfigStore();
+    const { isSettingsOpen: isOpen, setIsSettingsOpen, isDark, toggleDark: onToggleTheme } = useUIStore();
+    const { conversations } = useChatStore();
+
+    const onClose = () => setIsSettingsOpen(false);
+
     const [activeTab, setActiveTab] = useState<'analytics' | 'models' | 'keys' | 'appearance'>('analytics');
     const [customKeys, setCustomKeys] = useState(config.apiKeys);
     const [isVerifying, setIsVerifying] = useState(false);
