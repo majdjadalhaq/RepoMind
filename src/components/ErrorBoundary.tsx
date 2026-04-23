@@ -20,9 +20,8 @@ export class ErrorBoundary extends Component<Props, State> {
     return { hasError: true, error };
   }
 
-  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    // eslint-disable-next-line no-console
-    console.error('Uncaught error:', error, errorInfo);
+  public componentDidCatch(_error: Error, _errorInfo: ErrorInfo) {
+    // Logic for telemetry reporting could go here
   }
 
   public render() {
