@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState, useMemo, memo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Message, AVAILABLE_MODELS } from '../core/types';
-import { User, Check, Copy, Sparkles, ArrowRight, BrainCircuit, ChevronDown, Code2, Layout, Download, MoreVertical, X } from 'lucide-react';
+import { Message, AVAILABLE_MODELS, LLMModel, DiscoveredModel } from '../core/types';
+import { User, Check, Copy, Sparkles, ArrowRight, ChevronDown, Download, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { MermaidRenderer } from './MermaidRenderer';
 
@@ -19,7 +19,7 @@ interface ChatAreaProps {
 
 // --- Components ---
 
-const CodeBlock = memo(({ language, children }: { language: string, children?: any }) => {
+const CodeBlock = memo(({ language, children }: { language: string, children?: React.ReactNode }) => {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
@@ -33,6 +33,7 @@ const CodeBlock = memo(({ language, children }: { language: string, children?: a
       <div className="flex items-center justify-between px-4 py-2 bg-gray-100/50 dark:bg-white/5 border-b border-gray-100 dark:border-white/5 select-none">
         <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">{language || 'text'}</span>
         <button
+          aria-label="Copy code block"
           onClick={handleCopy}
           className="text-gray-400 hover:text-black dark:hover:text-white transition-colors"
         >
@@ -85,7 +86,7 @@ const ThinkingSection = memo(({ text, thinkingTime }: { text: string, thinkingTi
                   <ReactMarkdown
                     remarkPlugins={[remarkGfm]}
                     components={{
-                      a: ({ href, children }: any) => (
+                      a: ({ href, children }: { href?: string; children?: React.ReactNode }) => (
                         <a href={href} target="_blank" rel="noopener noreferrer" className="underline decoration-1 underline-offset-4 decoration-gray-400 hover:decoration-black dark:hover:decoration-white transition-all font-medium">
                           {children}
                         </a>
@@ -126,13 +127,14 @@ const LiveTimer = memo(({ startTime, label }: { startTime: number, label: string
 });
 
 // Single Message Item - Memoized for Performance
-const MessageItem = memo(({ msg, supportsThinking, showThinking, isDesignMode, isLoadingMessage }: { msg: Message, supportsThinking: boolean, showThinking: boolean, isDesignMode: boolean, isLoadingMessage: boolean }) => {
+const MessageItem = memo(({ msg, supportsThinking, showThinking, isLoadingMessage }: { msg: Message, supportsThinking: boolean, showThinking: boolean, isLoadingMessage: boolean }) => {
 
   // Find friendly name for display
   const modelDisplayName = useMemo(() => {
     if (!msg.model) return null;
     for (const provider in AVAILABLE_MODELS) {
-      const found = (AVAILABLE_MODELS as any)[provider].find((m: any) => m.id === msg.model);
+      const providerModels = AVAILABLE_MODELS[provider as keyof typeof AVAILABLE_MODELS];
+      const found = providerModels.find((m: LLMModel) => m.id === msg.model);
       if (found) return found.name;
     }
     return msg.model;
@@ -141,7 +143,7 @@ const MessageItem = memo(({ msg, supportsThinking, showThinking, isDesignMode, i
   // Custom Renderer for this message
   // Includes logic to show toggle for mermaid
   const components = useMemo(() => ({
-    code: ({ node, className, children, ...props }: any) => {
+    code: ({ className, children, ...props }: { className?: string; children?: React.ReactNode }) => {
       const match = /language-(\w+)/.exec(className || '');
       const codeContent = String(children).replace(/\n$/, '');
 
@@ -159,15 +161,15 @@ const MessageItem = memo(({ msg, supportsThinking, showThinking, isDesignMode, i
         </code>
       );
     },
-    ul: ({ children }: any) => <ul className="list-disc pl-5 my-4 space-y-2 opacity-90">{children}</ul>,
-    ol: ({ children }: any) => <ol className="list-decimal pl-5 my-4 space-y-2 opacity-90">{children}</ol>,
-    h1: ({ children }: any) => <h1 className="text-2xl font-display font-bold mt-8 mb-4">{children}</h1>,
-    h2: ({ children }: any) => <h2 className="text-xl font-display font-bold mt-6 mb-3 animate-in fade-in duration-700 fill-mode-both">{children}</h2>,
-    h3: ({ children }: any) => <h3 className="text-lg font-display font-bold mt-5 mb-2 animate-in fade-in duration-700 fill-mode-both">{children}</h3>,
-    p: ({ children }: any) => <p className="mb-4 last:mb-0 animate-in fade-in duration-700 fill-mode-both">{children}</p>,
-    li: ({ children }: any) => <li className="animate-in fade-in duration-700 fill-mode-both">{children}</li>,
-    blockquote: ({ children }: any) => <blockquote className="border-l-4 border-gray-200 dark:border-white/20 pl-4 italic my-4 opacity-70 animate-in fade-in duration-1000 fill-mode-both">{children}</blockquote>,
-    a: ({ href, children }: any) => (
+    ul: ({ children }: { children?: React.ReactNode }) => <ul className="list-disc pl-5 my-4 space-y-2 opacity-90">{children}</ul>,
+    ol: ({ children }: { children?: React.ReactNode }) => <ol className="list-decimal pl-5 my-4 space-y-2 opacity-90">{children}</ol>,
+    h1: ({ children }: { children?: React.ReactNode }) => <h1 className="text-2xl font-display font-bold mt-8 mb-4">{children}</h1>,
+    h2: ({ children }: { children?: React.ReactNode }) => <h2 className="text-xl font-display font-bold mt-6 mb-3 animate-in fade-in duration-700 fill-mode-both">{children}</h2>,
+    h3: ({ children }: { children?: React.ReactNode }) => <h3 className="text-lg font-display font-bold mt-5 mb-2 animate-in fade-in duration-700 fill-mode-both">{children}</h3>,
+    p: ({ children }: { children?: React.ReactNode }) => <p className="mb-4 last:mb-0 animate-in fade-in duration-700 fill-mode-both">{children}</p>,
+    li: ({ children }: { children?: React.ReactNode }) => <li className="animate-in fade-in duration-700 fill-mode-both">{children}</li>,
+    blockquote: ({ children }: { children?: React.ReactNode }) => <blockquote className="border-l-4 border-gray-200 dark:border-white/20 pl-4 italic my-4 opacity-70 animate-in fade-in duration-1000 fill-mode-both">{children}</blockquote>,
+    a: ({ href, children }: { href?: string; children?: React.ReactNode }) => (
       <a
         href={href}
         target="_blank"
@@ -177,16 +179,16 @@ const MessageItem = memo(({ msg, supportsThinking, showThinking, isDesignMode, i
         {children}
       </a>
     ),
-    table: ({ children }: any) => (
+    table: ({ children }: { children?: React.ReactNode }) => (
       <div className="my-6 overflow-x-auto rounded-xl border border-gray-100 dark:border-white/10 shadow-sm">
         <table className="w-full border-collapse text-sm text-left">{children}</table>
       </div>
     ),
-    thead: ({ children }: any) => <thead className="bg-gray-50/50 dark:bg-white/5 font-bold">{children}</thead>,
-    tbody: ({ children }: any) => <tbody className="divide-y divide-gray-100 dark:divide-white/5">{children}</tbody>,
-    tr: ({ children }: any) => <tr className="hover:bg-gray-50/30 dark:hover:bg-white/[0.02] transition-colors">{children}</tr>,
-    th: ({ children }: any) => <th className="px-4 py-3 border-b border-gray-100 dark:border-white/10 font-bold text-gray-900 dark:text-gray-100">{children}</th>,
-    td: ({ children }: any) => <td className="px-4 py-3 text-gray-700 dark:text-gray-300 leading-relaxed font-medium">{children}</td>,
+    thead: ({ children }: { children?: React.ReactNode }) => <thead className="bg-gray-50/50 dark:bg-white/5 font-bold">{children}</thead>,
+    tbody: ({ children }: { children?: React.ReactNode }) => <tbody className="divide-y divide-gray-100 dark:divide-white/5">{children}</tbody>,
+    tr: ({ children }: { children?: React.ReactNode }) => <tr className="hover:bg-gray-50/30 dark:hover:bg-white/[0.02] transition-colors">{children}</tr>,
+    th: ({ children }: { children?: React.ReactNode }) => <th className="px-4 py-3 border-b border-gray-100 dark:border-white/10 font-bold text-gray-900 dark:text-gray-100">{children}</th>,
+    td: ({ children }: { children?: React.ReactNode }) => <td className="px-4 py-3 text-gray-700 dark:text-gray-300 leading-relaxed font-medium">{children}</td>,
   }), [isLoadingMessage]);
 
   const handleCopy = (e: React.MouseEvent) => {
@@ -235,6 +237,7 @@ const MessageItem = memo(({ msg, supportsThinking, showThinking, isDesignMode, i
           flex flex-col gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-200
         `}>
           <button
+            aria-label="Copy Message"
             onClick={handleCopy}
             className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 text-gray-400 hover:text-black dark:hover:text-white transition-colors"
             title="Copy Message"
@@ -242,6 +245,7 @@ const MessageItem = memo(({ msg, supportsThinking, showThinking, isDesignMode, i
             <Copy size={14} />
           </button>
           <button
+            aria-label="Download as Markdown"
             onClick={handleDownload}
             className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 text-gray-400 hover:text-black dark:hover:text-white transition-colors"
             title="Download as Markdown"
@@ -321,11 +325,11 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
   onSuggestionClick,
 }) => {
   const { messages, isLoading } = useChatStore();
-  const { showThinking, isDesignMode } = useUIStore();
+  const { showThinking } = useUIStore();
   const { llmConfig, keyCapabilities } = useConfigStore();
 
   const currentModelDef = AVAILABLE_MODELS[llmConfig.provider]?.find(m => m.id === llmConfig.model);
-  const discoveredModelDef = keyCapabilities?.[llmConfig.provider]?.discoveredModels?.find((m: any) => m.id === llmConfig.model);
+  const discoveredModelDef = keyCapabilities?.[llmConfig.provider]?.discoveredModels?.find((m: DiscoveredModel) => m.id === llmConfig.model);
 
   const supportsThinking = !!(
     currentModelDef?.hasThinking ||
@@ -418,7 +422,6 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
             msg={msg}
             supportsThinking={supportsThinking}
             showThinking={showThinking}
-            isDesignMode={isDesignMode}
             isLoadingMessage={isLoading && idx === messages.length - 1}
           />
         ))}

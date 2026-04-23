@@ -8,12 +8,15 @@ interface RepoState {
   githubRepoLink: string;
   isRepoLoading: boolean;
   loadingFilePaths: string[];
+  truncationWarning: { limit: string; actual: string } | null;
   
   // Actions
   setRepoDetails: (details: RepoDetails | null) => void;
   setRepoTree: (tree: FileNode[]) => void;
   setGithubRepoLink: (link: string) => void;
   setIsRepoLoading: (isLoading: boolean) => void;
+  setLoadingFilePaths: (paths: string[]) => void;
+  setTruncationWarning: (warning: { limit: string; actual: string } | null) => void;
   
   // Async Thunks
   loadRepository: (url: string) => Promise<void>;
@@ -26,20 +29,26 @@ export const useRepoStore = create<RepoState>((set) => ({
   githubRepoLink: '',
   isRepoLoading: false,
   loadingFilePaths: [],
+  truncationWarning: null,
 
   setRepoDetails: (repoDetails) => set({ repoDetails }),
   setRepoTree: (repoTree) => set({ repoTree }),
   setGithubRepoLink: (githubRepoLink) => set({ githubRepoLink }),
   setIsRepoLoading: (isRepoLoading) => set({ isRepoLoading }),
+  setLoadingFilePaths: (loadingFilePaths) => set({ loadingFilePaths }),
+  setTruncationWarning: (truncationWarning) => set({ truncationWarning }),
 
   loadRepository: async (url: string) => {
-    set({ isRepoLoading: true, githubRepoLink: url });
+    set({ isRepoLoading: true, githubRepoLink: url, truncationWarning: null });
     try {
       const details = await fetchRepoDetails(url);
       if (details) {
         set({ repoDetails: details });
-        const { tree } = await fetchRepoStructure(details);
+        const { tree, warning } = await fetchRepoStructure(details);
         set({ repoTree: tree });
+        if (warning) {
+          set({ truncationWarning: warning });
+        }
       }
     } catch (error) {
       // Error handling will be moved to a toast/notification system in future phases

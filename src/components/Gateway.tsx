@@ -82,10 +82,27 @@ export const Gateway: React.FC<GatewayProps> = ({ onComplete }) => {
       if (firstValidProvider === 'deepseek') model = 'deepseek-reasoner';
       if (firstValidProvider === 'openrouter') model = 'anthropic/claude-3.5-sonnet';
 
+      const now = Date.now();
       const newConfig: LLMConfig = {
-        provider: firstValidProvider,
+        provider: firstValidProvider as LLMProvider,
         model,
-        apiKeys: customKeys
+        apiKey: customKeys[firstValidProvider as LLMProvider] || '',
+        apiKeys: customKeys,
+        temperature: 0.7,
+        apiKeysDates: {
+          google: customKeys.google ? now : undefined,
+          openai: customKeys.openai ? now : undefined,
+          anthropic: customKeys.anthropic ? now : undefined,
+          deepseek: customKeys.deepseek ? now : undefined,
+          openrouter: customKeys.openrouter ? now : undefined
+        },
+        apiKeysFirstUsed: {
+          google: customKeys.google ? now : undefined,
+          openai: customKeys.openai ? now : undefined,
+          anthropic: customKeys.anthropic ? now : undefined,
+          deepseek: customKeys.deepseek ? now : undefined,
+          openrouter: customKeys.openrouter ? now : undefined
+        }
       };
 
       // Delay slightly to show success state

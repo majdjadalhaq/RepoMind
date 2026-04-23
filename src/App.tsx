@@ -5,16 +5,17 @@ import { RepoModal } from './components/RepoModal';
 import { ModelSelector } from './components/ModelSelector';
 import { Gateway } from './components/Gateway';
 import { SettingsModal } from './components/SettingsModal';
-import { FileContext, ChatState, Message, RepoDetails, LLMConfig, AVAILABLE_MODELS, LLMProvider, MODEL_PRICING, StoredConversation } from './core/types';
+import type { FileContext, Message, LLMConfig, LLMProvider, StoredConversation, LLMModel, FileNode } from './core/types';
+import { AVAILABLE_MODELS, MODEL_PRICING } from './core/types';
 import { readFile } from './core/utils';
 import { streamLLMResponse } from './infrastructure/llmFactory';
-import { fetchRepoDetails, fetchRepoStructure, fetchGithubFileContent } from './infrastructure/githubService';
+import { fetchRepoStructure, fetchGithubFileContent } from './infrastructure/githubService';
 import { verifyKey } from './infrastructure/keyVerification';
 import { useUIStore } from './application/store/ui-store';
 import { useRepoStore } from './application/store/repo-store';
 import { useConfigStore } from './application/store/config-store';
 import { useChatStore } from './application/store/chat-store';
-import { Paperclip, Menu, X, XCircle, ArrowUp, Loader2, Globe, Layers, Zap, Eye, EyeOff, ChevronDown, Check, BrainCircuit, CheckSquare, Box, ArrowRight } from 'lucide-react';
+import { Paperclip, Menu, X, XCircle, ArrowUp, Loader2, Globe, Layers, Zap, BrainCircuit, CheckSquare, Box, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 const App: React.FC = () => {
@@ -25,32 +26,30 @@ const App: React.FC = () => {
   }, []);
   const { 
     isMobileMenuOpen, setIsMobileMenuOpen,
-    isDark, setIsDark,
-    isSettingsOpen, setIsSettingsOpen,
-    isRepoModalOpen, setIsRepoModalOpen,
+    setIsSettingsOpen,
+    setIsRepoModalOpen,
     isSearchEnabled, setIsSearchEnabled,
     isDesignMode, setIsDesignMode,
-    isFullRepoMode, setIsFullRepoMode,
-    showThinking, setShowThinking,
+    isFullRepoMode,
     thinkingMode, setThinkingMode,
     quotaError, setQuotaError,
     isOnboarding, setIsOnboarding,
     isInitializing, setIsInitializing,
-    toggleDark
   } = useUIStore();
 
   const {
-    isRepoLoading, setIsRepoLoading,
+    setIsRepoLoading,
     repoDetails, setRepoDetails,
     repoTree, setRepoTree,
     githubRepoLink, setGithubRepoLink,
-    loadingFilePaths, setLoadingFilePaths
+    loadingFilePaths, setLoadingFilePaths,
+    truncationWarning, setTruncationWarning
   } = useRepoStore();
 
   const {
     llmConfig, setLLMConfig,
-    keyCapabilities, setKeyCapabilities,
-    totalUsage, modelUsage, resetUsage, updateUsage
+    keyCapabilities,
+    totalUsage, modelUsage, updateUsage
   } = useConfigStore();
 
   const {
@@ -59,17 +58,16 @@ const App: React.FC = () => {
     conversations, setConversations,
     currentConversationId, setCurrentConversationId,
     isLoading, setIsLoading,
-    selectConversation, deleteConversation
   } = useChatStore();
 
   const [input, setInput] = useState('');
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const toggleTheme = () => toggleDark();
+
 
   // Derived state
   const currentModelDef = AVAILABLE_MODELS[llmConfig.provider]?.find(m => m.id === llmConfig.model);
-  const discoveredModelDef = keyCapabilities?.[llmConfig.provider]?.discoveredModels?.find((m: any) => m.id === llmConfig.model);
+  const discoveredModelDef = keyCapabilities?.[llmConfig.provider]?.discoveredModels?.find((m: LLMModel) => m.id === llmConfig.model);
 
   const supportsThinking = !!(
     currentModelDef?.hasThinking ||
@@ -86,7 +84,7 @@ const App: React.FC = () => {
   const capableVisualModels = ['gemini', 'gpt-4', 'claude-3', 'sonnet', 'opus', 'o1', 'deepseek', 'f1'];
   const supportsVisuals = capableVisualModels.some(m => llmConfig.model.toLowerCase().includes(m));
 
-  const isFreeVersion = llmConfig.provider === 'google' && llmConfig.apiKeys.google === process.env.NEXT_PUBLIC_API_KEY;
+
 
   // Initialization Logic
   useEffect(() => {
@@ -95,16 +93,15 @@ const App: React.FC = () => {
       const savedKeysStr = localStorage.getItem('llm_api_keys');
       const savedConversations = localStorage.getItem('chat_history');
       const savedUsage = localStorage.getItem('total_usage');
-      const savedModelUsage = localStorage.getItem('model_usage');
       const savedCurrentId = localStorage.getItem('current_conv_id');
       const savedConfig = localStorage.getItem('llm_config');
 
       // 1. Initial State Load
       if (savedUsage) {
         try {
-          const parsed = JSON.parse(savedUsage);
+          JSON.parse(savedUsage);
           // Set via store if possible, but for now we'll just use the object
-        } catch (e) { }
+        } catch {}
       }
 
       if (savedConversations) {
@@ -113,7 +110,7 @@ const App: React.FC = () => {
           setConversations(parsed);
           
           if (savedCurrentId) {
-            const lastConv = parsed.find((c: any) => c.id === savedCurrentId);
+            const lastConv = parsed.find((c: StoredConversation) => c.id === savedCurrentId);
             if (lastConv) {
               setCurrentConversationId(savedCurrentId);
               setMessages(lastConv.messages);
@@ -123,7 +120,7 @@ const App: React.FC = () => {
               setRepoTree(lastConv.repoTree || []);
             }
           }
-        } catch (e) { }
+        } catch {}
       }
 
       // 2. Load keys/config
@@ -138,7 +135,7 @@ const App: React.FC = () => {
             nextConfig = { ...nextConfig, ...parsedConfig };
           }
           setLLMConfig(nextConfig);
-        } catch (e) { }
+        } catch {}
       }
 
       // 3. Authorization Check
@@ -166,7 +163,7 @@ const App: React.FC = () => {
         if (atLeastOneKey && allProvidedKeysValid && !onlyHasDefaultKey) {
           setIsOnboarding(false);
         } else {
-          console.warn("Invalid, missing, or default keys detected on startup, forcing onboarding.");
+          // console.warn("Invalid, missing, or default keys detected on startup, forcing onboarding.");
           setIsOnboarding(true);
         }
       } else {
@@ -223,12 +220,9 @@ const App: React.FC = () => {
     setConversations(updatedConversations);
   }, [messages, activeFiles, githubRepoLink, repoDetails, currentConversationId, isLoading]);
 
-  const { createNewConversation } = useChatStore();
 
-  const handleNewChat = () => {
 
-    createNewConversation();
-  };
+
 
   const handleFullReset = () => {
     if (confirm("This will delete ALL data (history, keys, settings) and reset RepoMind. Are you sure?")) {
@@ -263,7 +257,6 @@ const App: React.FC = () => {
       }
     }
     setIsLoading(false);
-  };
   };
 
   const sendMessage = async (text: string, configOverride?: LLMConfig) => {
@@ -342,7 +335,7 @@ const App: React.FC = () => {
       for await (const chunk of stream) {
         // IMMEDIATE STOP CHECK: If user stopped or signal aborted, break the loop and cease all UI updates
         if (controller.signal.aborted || !abortControllerRef.current) {
-          console.log("[App] Loop termination requested via AbortSignal.");
+          // // console.log("[App] Loop termination requested via AbortSignal.");
           break;
         }
 
@@ -382,8 +375,6 @@ const App: React.FC = () => {
 
         if (chunk.usage) {
           const { promptTokens, completionTokens } = chunk.usage;
-
-          const { promptTokens, completionTokens } = chunk.usage;
           const pricing = MODEL_PRICING[llmConfig.model] || { input: 0, output: 0 };
           const cost = ((promptTokens / 1000000) * pricing.input) + ((completionTokens / 1000000) * pricing.output);
           
@@ -393,15 +384,14 @@ const App: React.FC = () => {
           const currentMsgs = useChatStore.getState().messages;
           setMessages(currentMsgs.map(m => m.id === botMessageId ? { ...m, usage: chunk.usage } : m));
         }
-        }
       }
 
       const finalMsgs = useChatStore.getState().messages;
       setMessages(finalMsgs.map(m => 
         m.id === botMessageId ? { ...m, responseTime: Date.now() - responseStartTime } : m
       ));
-    } catch (e) {
-      console.error("Streaming failed", e);
+    } catch {
+      // console.error("Streaming failed", e);
     } finally {
       setIsLoading(false);
     }
@@ -421,8 +411,8 @@ const App: React.FC = () => {
         try {
           const extractedFiles = await readFile(e.target.files[i]);
           allNewFiles.push(...extractedFiles);
-        } catch (err) {
-          console.error("Error reading file", err);
+        } catch {
+          // console.error("Error reading file", err);
         }
       }
 
@@ -432,18 +422,6 @@ const App: React.FC = () => {
 
   const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
   const toggleSearch = () => setIsSearchEnabled(!isSearchEnabled);
-
-  const handleGithubEnter = async () => {
-    if (!githubRepoLink.trim()) return;
-
-    setIsRepoModalOpen(true);
-    setIsRepoLoading(true);
-    setRepoDetails(null);
-
-    const details = await fetchRepoDetails(githubRepoLink);
-    setRepoDetails(details);
-    setIsRepoLoading(false);
-  };
 
   const handleAttachRepoFiles = async () => {
     if (!repoDetails) return;
@@ -457,8 +435,8 @@ const App: React.FC = () => {
       setActiveFiles([...activeFiles.filter(f => f.name !== 'REPOSITORY_MAP.md'), mapFile]);
 
       setIsRepoModalOpen(false);
-    } catch (error) {
-      console.error("Failed to attach repo structure:", error);
+    } catch {
+      // console.error("Failed to attach repo structure:", error);
       alert("Failed to load repository structure.");
     } finally {
       setIsRepoLoading(false);
@@ -485,8 +463,8 @@ const App: React.FC = () => {
       );
 
       setActiveFiles([...activeFiles, fileContext]);
-    } catch (e) {
-      console.error("Error fetching specific file:", e);
+    } catch {
+      // console.error("Error fetching specific file:", e);
     }
   };
 
@@ -496,7 +474,7 @@ const App: React.FC = () => {
     setIsRepoLoading(true);
     const paths: string[] = [];
 
-    const walk = (nodes: any[]) => {
+    const walk = (nodes: FileNode[]) => {
       nodes.forEach(node => {
         if (node.type === 'blob') paths.push(node.path);
         if (node.children) walk(node.children);
@@ -529,17 +507,15 @@ const App: React.FC = () => {
 
       const newFiles = await Promise.all(promises);
       setActiveFiles([...activeFiles, ...newFiles]);
-    } catch (err) {
-      console.error("Select all failed", err);
+    } catch {
+      // console.error("Select all failed", err);
     } finally {
       setIsRepoLoading(false);
       setLoadingFilePaths(loadingFilePaths.filter(p => !filteredPaths.includes(p)));
     }
   };
 
-  const handleResetConfig = () => {
-    setIsOnboarding(true);
-  };
+
 
   // Handle settings shortcut from ModelSelector
   useEffect(() => {
@@ -649,8 +625,8 @@ const App: React.FC = () => {
                         if (provider === 'google' && isLive) {
                           finalModels = discoveredModels;
                         } else if (isLive) {
-                          const discoveredIds = new Set(discoveredModels.map((m: any) => m.id));
-                          finalModels = [...discoveredModels, ...hardcodedModels.filter((m: any) => !discoveredIds.has(m.id))];
+                          const discoveredIds = new Set(discoveredModels.map((m: LLMModel) => m.id));
+                          finalModels = [...discoveredModels, ...hardcodedModels.filter((m: LLMModel) => !discoveredIds.has(m.id))];
                         }
 
                         // Sort: thinking models first, then alphabetically
@@ -715,7 +691,7 @@ const App: React.FC = () => {
 
                         setQuotaError(null);
 
-                        const abortMessage: Message = {
+                        const abortBotMsg: Message = {
                           id: Date.now().toString(),
                           role: 'model',
                           text: `*${sillyText}*`,
@@ -723,11 +699,11 @@ const App: React.FC = () => {
                           responseTime: 1 // Stop the timer
                         };
 
-                        const abortMessage: Message = { id: Date.now().toString(), role: 'user', text: 'Task Aborted.', timestamp: Date.now() };
+                        const abortUserMsg: Message = { id: (Date.now() + 1).toString(), role: 'user', text: 'Task Aborted.', timestamp: Date.now() };
                         const currentMsgs = useChatStore.getState().messages;
-                        setMessages([...currentMsgs, abortMessage]);
+                        setMessages([...currentMsgs, abortUserMsg, abortBotMsg]);
                         setConversations(conversations.map(c =>
-                          c.id === currentConversationId ? { ...c, messages: [...c.messages, abortMessage], lastModified: Date.now() } : c
+                          c.id === currentConversationId ? { ...c, messages: [...c.messages, abortUserMsg, abortBotMsg], lastModified: Date.now() } : c
                         ));
                       }}
                       className="w-full py-4 text-gray-400 dark:text-zinc-600 font-bold text-xs hover:text-red-500 dark:hover:text-red-400 transition-all uppercase tracking-[0.2em]"
@@ -750,6 +726,8 @@ const App: React.FC = () => {
       <aside className="hidden md:flex w-[340px] flex-col border-r border-gray-100 dark:border-white/10 bg-white dark:bg-black h-full overflow-hidden">
         <Sidebar
           onAddFiles={handleFileChange}
+          onRepoFileClick={handleRepoFileClick}
+          onSelectAllFiles={handleSelectAllFiles}
         />
       </aside>
 
@@ -759,7 +737,7 @@ const App: React.FC = () => {
         {/* Minimal Header */}
         <header className="h-20 flex items-center justify-between px-6 md:px-10 shrink-0 relative z-30">
           <div className="flex items-center gap-4">
-            <button onClick={toggleMobileMenu} className="md:hidden text-black dark:text-white p-2 -ml-2">
+            <button aria-label="Toggle mobile menu" onClick={toggleMobileMenu} className="md:hidden text-black dark:text-white p-2 -ml-2">
               <Menu className="w-6 h-6" />
             </button>
 
@@ -779,6 +757,22 @@ const App: React.FC = () => {
 
         {/* Chat Area - Scrollable */}
         <div className="flex-1 overflow-hidden relative flex flex-col">
+          {truncationWarning && (
+            <div className="mx-6 mt-4 p-3 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-xl flex items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2">
+              <div className="flex items-center gap-2 text-amber-800 dark:text-amber-400">
+                <Box className="w-4 h-4" />
+                <span className="text-xs font-medium">
+                  Partial Repo Attached: Hit {truncationWarning.limit} limit (Actual: {truncationWarning.actual}).
+                </span>
+              </div>
+              <button 
+                onClick={() => setTruncationWarning(null)}
+                className="p-1 hover:bg-amber-200 dark:hover:bg-amber-500/20 rounded-md transition-colors"
+              >
+                <X className="w-3 h-3 text-amber-800 dark:text-amber-400" />
+              </button>
+            </div>
+          )}
           <ChatArea
             onSuggestionClick={handleSuggestionClick}
           />
@@ -835,12 +829,13 @@ const App: React.FC = () => {
 
                   {/* Left Actions */}
                   <div className="flex items-center gap-1">
-                    <label className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 text-gray-400 hover:text-black dark:hover:text-white cursor-pointer transition-all active:scale-95">
+                    <label aria-label="Attach files" className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 text-gray-400 hover:text-black dark:hover:text-white cursor-pointer transition-all active:scale-95">
                       <Paperclip className="w-5 h-5" />
                       <input type="file" multiple className="hidden" onChange={handleFileChange} />
                     </label>
 
                     <button
+                      aria-label="Toggle Web Search"
                       onClick={toggleSearch}
                       className={`p-2 rounded-xl transition-all active:scale-95 ${isSearchEnabled
                         ? 'bg-blue-50 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400'
@@ -853,6 +848,7 @@ const App: React.FC = () => {
 
                     {repoDetails && (
                       <button
+                        aria-label="Attach All Repository Files"
                         onClick={handleSelectAllFiles}
                         className="p-2 rounded-xl transition-all active:scale-95 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-400 hover:text-black dark:hover:text-white"
                         title="Attach All Repository Files"
@@ -863,6 +859,7 @@ const App: React.FC = () => {
 
                     {supportsVisuals && (
                       <button
+                        aria-label="Toggle Design Mode"
                         onClick={() => setIsDesignMode(!isDesignMode)}
                         className={`p-2 rounded-xl transition-all active:scale-95 ${isDesignMode
                           ? 'bg-purple-50 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400'
@@ -908,6 +905,7 @@ const App: React.FC = () => {
                     )}
 
                     <button
+                      aria-label={isLoading ? "Stop generating response" : "Send message"}
                       onClick={isLoading ? stopResponse : handleSendMessage}
                       disabled={!isLoading && (!input.trim() && activeFiles.length === 0)}
                       className={`
@@ -952,7 +950,7 @@ const App: React.FC = () => {
               transition={{ type: "spring", damping: 30, stiffness: 300 }}
               className="fixed inset-y-0 left-0 z-50 w-4/5 max-w-[320px] bg-white dark:bg-black h-full shadow-2xl md:hidden border-r border-gray-100 dark:border-white/10"
             >
-              <button onClick={toggleMobileMenu} className="absolute top-4 right-4 p-2 text-gray-400 hover:text-black dark:hover:text-white transition-colors z-[60]">
+              <button aria-label="Close mobile menu" onClick={toggleMobileMenu} className="absolute top-4 right-4 p-2 text-gray-400 hover:text-black dark:hover:text-white transition-colors z-[60]">
                 <X className="w-6 h-6 pointer-events-none" />
               </button>
 
@@ -964,6 +962,8 @@ const App: React.FC = () => {
               <Sidebar
                 className="h-full border-none"
                 onAddFiles={handleFileChange}
+                onRepoFileClick={handleRepoFileClick}
+                onSelectAllFiles={handleSelectAllFiles}
               />
             </motion.div>
           </>

@@ -1,4 +1,4 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import React, { Component, ReactNode } from 'react';
 import { Button } from './ui/Button';
 
 interface Props {
@@ -20,7 +20,7 @@ export class ErrorBoundary extends Component<Props, State> {
     return { hasError: true, error };
   }
 
-  public componentDidCatch(_error: Error, _errorInfo: ErrorInfo) {
+  public componentDidCatch() {
     // Logic for telemetry reporting could go here
   }
 

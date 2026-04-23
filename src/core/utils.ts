@@ -3,19 +3,20 @@ import JSZip from "jszip";
 import * as XLSX from "xlsx";
 import yaml from "js-yaml";
 // 5. PDF.js is loaded dynamically to avoid Node-specific dependencies like 'canvas' during build
-let pdfLib: any = null;
+let pdfLib: unknown = null;
 const getPdfLib = async () => {
-  if (pdfLib) return pdfLib;
+  if (pdfLib) return pdfLib as Record<string, unknown>;
   const lib = await import("pdfjs-dist");
   pdfLib = lib.default || lib;
-  pdfLib.GlobalWorkerOptions.workerSrc = 'https://esm.sh/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
-  return pdfLib;
+  (pdfLib as Record<string, unknown>).GlobalWorkerOptions = (pdfLib as Record<string, unknown>).GlobalWorkerOptions || {};
+  ((pdfLib as Record<string, unknown>).GlobalWorkerOptions as Record<string, unknown>).workerSrc = 'https://esm.sh/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+  return pdfLib as Record<string, unknown>;
 };
 
 /**
  * Converts a flat list of git paths into a nested FileNode tree.
  */
-export const buildFileTree = (items: any[]): FileNode[] => {
+export const buildFileTree = (items: { path: string; type: 'blob' | 'tree' }[]): FileNode[] => {
   const root: FileNode[] = [];
   const map: { [key: string]: FileNode } = {};
 
@@ -31,7 +32,7 @@ export const buildFileTree = (items: any[]): FileNode[] => {
     const parentPath = parts.join('/');
 
     const node: FileNode = {
-      name: fileName,
+      name: fileName || 'unknown',
       path: item.path,
       type: item.type,
       children: item.type === 'tree' ? [] : undefined
@@ -119,7 +120,7 @@ export const readFile = async (file: File): Promise<FileContext[]> => {
         content: JSON.stringify(obj, null, 2),
         category: 'code'
       }];
-    } catch (e) {
+    } catch {
       // Fallback to raw text if parsing fails
     }
   }
@@ -173,14 +174,14 @@ async function handleZipArchive(buffer: ArrayBuffer): Promise<FileContext[]> {
       });
     }
     return results;
-  } catch (error) {
+  } catch {
     return [];
   }
 }
 
 async function handlePdf(buffer: ArrayBuffer): Promise<string> {
   try {
-    const pdf = await getPdfLib();
+    const pdf = await getPdfLib() as { getDocument: (opts: { data: ArrayBuffer }) => { promise: Promise<{ numPages: number; getPage: (n: number) => Promise<{ getTextContent: () => Promise<{ items: { str: string }[] }> }> }> } };
     const loadingTask = pdf.getDocument({ data: buffer });
     const pdfDoc = await loadingTask.promise;
     let fullText = "";
@@ -191,11 +192,11 @@ async function handlePdf(buffer: ArrayBuffer): Promise<string> {
     for (let i = 1; i <= maxPages; i++) {
       const page = await pdfDoc.getPage(i);
       const textContent = await page.getTextContent();
-      const pageText = textContent.items.map((item: any) => item.str).join(" ");
+      const pageText = textContent.items.map((item: { str: string }) => item.str).join(" ");
       fullText += `--- Page ${i} ---\n${pageText}\n\n`;
     }
     return fullText;
-  } catch (e) {
+  } catch {
     return "Error parsing PDF file.";
   }
 }
@@ -212,7 +213,7 @@ function handleExcel(buffer: ArrayBuffer): string {
     });
 
     return result;
-  } catch (e) {
+  } catch {
     return "Error parsing Excel file.";
   }
 }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LLMConfig, LLMProvider, StoredConversation } from '../core/types';
+import type { LLMProvider } from '../core/types';
 import { Check, X, XCircle, ExternalLink, Loader2, Zap, Settings, Shield, Activity, Globe, Lock, Sun, Moon } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { verifyKey } from '../infrastructure/keyVerification';

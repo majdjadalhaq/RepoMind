@@ -13,6 +13,13 @@ export interface FileContext {
   category: 'code' | 'image' | 'other';
 }
 
+export interface DiscoveredModel {
+  id: string;
+  name: string;
+  hasThinking: boolean;
+  version?: number;
+}
+
 export interface Message {
   id: string;
   role: 'user' | 'model';
@@ -48,15 +55,12 @@ export interface RepoDetails {
   forks_count: number;
   language: string | null;
   html_url: string;
-  owner: {
-    avatar_url: string;
-    login: string;
-  };
-  updated_at: string;
-  open_issues_count: number;
-  topics: string[];
   default_branch: string;
-  contents?: RepoContent[];
+  open_issues_count: number;
+  owner: {
+    login: string;
+    avatar_url: string;
+  };
 }
 
 export interface FileNode {
@@ -64,31 +68,29 @@ export interface FileNode {
   path: string;
   type: 'blob' | 'tree';
   children?: FileNode[];
-  isOpen?: boolean;
-}
-
-export type LLMProvider = 'google' | 'openai' | 'anthropic' | 'deepseek' | 'openrouter';
-export type ThinkingMode = 'deep' | 'concise';
-
-export interface LLMConfig {
-  provider: LLMProvider;
-  model: string;
-  apiKeys: {
-    google: string;
-    openai: string;
-    anthropic: string;
-    deepseek: string;
-    openrouter: string;
-  };
-  apiKeysDates?: Record<LLMProvider, number>;
-  apiKeysFirstUsed?: Record<LLMProvider, number>;
 }
 
 export interface LLMModel {
   id: string;
   name: string;
+  description?: string;
   hasThinking: boolean;
-  version: number;
+  version?: number;
+}
+
+export type LLMProvider = 'google' | 'openai' | 'anthropic' | 'deepseek' | 'openrouter';
+
+export type ThinkingMode = 'disabled' | 'enabled' | 'automatic' | 'concise' | 'deep';
+
+export interface LLMConfig {
+  provider: LLMProvider;
+  model: string;
+  apiKey: string;
+  apiKeys: Record<LLMProvider, string>;
+  apiKeysDates?: Partial<Record<LLMProvider, number>>;
+  apiKeysFirstUsed?: Partial<Record<LLMProvider, number>>;
+  temperature: number;
+  maxTokens?: number;
 }
 
 export interface StoredConversation {
@@ -103,72 +105,86 @@ export interface StoredConversation {
   totalUsage?: UsageStats;
 }
 
-export interface ChatState {
-  messages: Message[];
-  isLoading: boolean;
-  activeFiles: FileContext[];
-  githubRepoLink: string;
-  repoTree: FileNode[];
-  repoDetails: RepoDetails | null;
-  llmConfig: LLMConfig;
-  thinkingMode: ThinkingMode;
+export interface AppState {
+  // UI State
+  isMobileMenuOpen: boolean;
+  isSettingsOpen: boolean;
+  isRepoModalOpen: boolean;
   isSearchEnabled: boolean;
   isDesignMode: boolean;
   isFullRepoMode: boolean;
-  showThinking: boolean;
-  currentConversationId: string | null;
+  thinkingMode: boolean;
+  quotaError: string | null;
+  isOnboarding: boolean;
+  isInitializing: boolean;
+
+  // Repo State
+  isRepoLoading: boolean;
+  repoDetails: RepoDetails | null;
+  repoTree: FileNode[];
+  githubRepoLink: string;
+  activeFiles: FileContext[];
+  loadingFilePaths: Set<string>;
+  truncationWarning: boolean;
+
+  // LLM Config State
+  llmConfig: LLMConfig;
+  keyCapabilities: Record<LLMProvider, { isValid: boolean; discoveredModels?: DiscoveredModel[]; error?: string }>;
+  
+  // Chat State
+  messages: Message[];
   conversations: StoredConversation[];
-  keyCapabilities: {
-    google?: { discoveredModels: LLMModel[] };
-    openai?: { discoveredModels: LLMModel[] };
-    anthropic?: { discoveredModels: LLMModel[] };
-    deepseek?: { discoveredModels: LLMModel[] };
-    openrouter?: { discoveredModels: LLMModel[] };
-  };
+  currentConversationId: string | null;
+  isLoading: boolean;
+
+  // Usage Stats
   totalUsage: UsageStats;
   modelUsage: Record<string, UsageStats>;
 }
 
 export const AVAILABLE_MODELS: Record<LLMProvider, LLMModel[]> = {
   google: [
-    { id: 'gemini-2.0-pro-exp', name: 'Gemini 2.0 Pro', hasThinking: false, version: 2 },
     { id: 'gemini-2.0-flash-exp', name: 'Gemini 2.0 Flash', hasThinking: false, version: 2 },
-    { id: 'gemini-2.0-flash-thinking-exp-1219', name: 'Gemini 2.0 Thinking', hasThinking: true, version: 2 },
+    { id: 'gemini-2.0-flash-thinking-exp', name: 'Gemini 2.0 Thinking', hasThinking: true, version: 2 },
     { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', hasThinking: false, version: 1.5 },
     { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', hasThinking: false, version: 1.5 },
   ],
   openai: [
     { id: 'gpt-4o', name: 'GPT-4o', hasThinking: false, version: 4 },
-    { id: 'o1', name: 'o1 (Reasoning)', hasThinking: true, version: 5 },
+    { id: 'gpt-4o-mini', name: 'GPT-4o Mini', hasThinking: false, version: 4 },
+    { id: 'o1-preview', name: 'o1 Preview', hasThinking: true, version: 5 },
+    { id: 'o1-mini', name: 'o1 Mini', hasThinking: true, version: 5 },
   ],
   anthropic: [
-    { id: 'claude-3-5-sonnet-latest', name: 'Claude 3.5 Sonnet', hasThinking: false, version: 3 },
+    { id: 'claude-3-5-sonnet-latest', name: 'Claude 3.5 Sonnet', hasThinking: false, version: 3.5 },
+    { id: 'claude-3-5-haiku-latest', name: 'Claude 3.5 Haiku', hasThinking: false, version: 3.5 },
+    { id: 'claude-3-opus-latest', name: 'Claude 3 Opus', hasThinking: false, version: 3 },
   ],
   deepseek: [
+    { id: 'deepseek-chat', name: 'DeepSeek V3', hasThinking: false, version: 3 },
     { id: 'deepseek-reasoner', name: 'DeepSeek R1', hasThinking: true, version: 1 },
-    { id: 'deepseek-chat', name: 'DeepSeek V3', hasThinking: false, version: 1 },
   ],
   openrouter: [
-    { id: 'anthropic/claude-3.5-sonnet', name: 'Claude 3.5 Sonnet (OR)', hasThinking: false, version: 3 },
+    { id: 'anthropic/claude-3-5-sonnet', name: 'Claude 3.5 Sonnet (OR)', hasThinking: false, version: 3.5 },
     { id: 'google/gemini-2.0-flash-001', name: 'Gemini 2.0 Flash (OR)', hasThinking: false, version: 2 },
     { id: 'deepseek/deepseek-r1', name: 'DeepSeek R1 (OR)', hasThinking: true, version: 1 },
+    { id: 'openai/gpt-4o', name: 'GPT-4o (OR)', hasThinking: false, version: 4 },
   ]
 };
 
-export interface ModelPricing {
-  input: number; // Per 1M tokens
-  output: number; // Per 1M tokens
-}
-
-export const MODEL_PRICING: Record<string, ModelPricing> = {
-  'gemini-2.0-pro-exp': { input: 0.1, output: 0.4 },
-  'gemini-2.0-flash-exp': { input: 0.1, output: 0.4 },
-  'gemini-2.0-flash-thinking-exp-1219': { input: 0.1, output: 0.4 },
+export const MODEL_PRICING: Record<string, { input: number; output: number }> = {
+  'gemini-2.0-flash-exp': { input: 0, output: 0 },
+  'gemini-2.0-flash-thinking-exp': { input: 0, output: 0 },
   'gemini-1.5-pro': { input: 1.25, output: 3.75 },
   'gemini-1.5-flash': { input: 0.075, output: 0.3 },
-  'gpt-4o': { input: 2.50, output: 10.00 },
-  'o1': { input: 15.00, output: 60.00 },
-  'claude-3-5-sonnet-latest': { input: 3.00, output: 15.00 },
+  'gpt-4o': { input: 2.5, output: 10 },
+  'gpt-4o-mini': { input: 0.15, output: 0.6 },
+  'o1-preview': { input: 15, output: 60 },
+  'o1-mini': { input: 3, output: 12 },
+  'claude-3-5-sonnet-latest': { input: 3, output: 15 },
+  'claude-3-5-haiku-latest': { input: 0.25, output: 1.25 },
+  'claude-3-opus-latest': { input: 15, output: 75 },
   'deepseek-chat': { input: 0.14, output: 0.28 },
-  'deepseek-reasoner': { input: 0.55, output: 2.19 },
+  'deepseek-reasoner': { input: 0.14, output: 0.28 },
+  'default': { input: 1, output: 1 }
 };

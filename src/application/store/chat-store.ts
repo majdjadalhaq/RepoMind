@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Message, FileContext, StoredConversation, UsageStats } from '../../core/types';
+import { Message, FileContext, StoredConversation } from '../../core/types';
 
 interface ChatState {
   messages: Message[];
@@ -20,8 +20,8 @@ interface ChatState {
   setIsLoading: (isLoading: boolean) => void;
   
   // Logic
-  createNewConversation: () => string;
-  loadConversation: (id: string) => void;
+  newConversation: () => string;
+  selectConversation: (id: string) => void;
   deleteConversation: (id: string) => void;
 }
 
@@ -59,7 +59,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   
   setIsLoading: (isLoading) => set({ isLoading }),
 
-  createNewConversation: () => {
+  newConversation: () => {
     const id = Math.random().toString(36).substring(7);
     const newConv: StoredConversation = {
       id,
@@ -82,7 +82,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     return id;
   },
 
-  loadConversation: (id) => {
+  selectConversation: (id) => {
     const conv = get().conversations.find(c => c.id === id);
     if (conv) {
       set({

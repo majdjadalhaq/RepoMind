@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { FileContext, FileNode, StoredConversation } from '../core/types';
 import { Trash2, FileCode, FileImage, Plus, Sun, Moon, Settings, MessageSquare, Clock, PlusCircle, CheckSquare, BarChart3 } from 'lucide-react';
 import { FileExplorer } from './FileExplorer';
 import { motion } from 'motion/react';
@@ -7,16 +6,19 @@ import { motion } from 'motion/react';
 import { useUIStore } from '../application/store/ui-store';
 import { useRepoStore } from '../application/store/repo-store';
 import { useChatStore } from '../application/store/chat-store';
-import { useConfigStore } from '../application/store/config-store';
 
 interface SidebarProps {
   className?: string;
   onAddFiles: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onRepoFileClick: (path: string) => void;
+  onSelectAllFiles: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
   className,
   onAddFiles,
+  onRepoFileClick,
+  onSelectAllFiles
 }) => {
   const [activeTab, setActiveTab] = useState<'context' | 'explorer' | 'history'>('context');
   const [historySort, setHistorySort] = useState<'time' | 'tokens'>('time');
@@ -24,9 +26,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const { isDark, toggleDark, setIsSettingsOpen } = useUIStore();
   const { 
     repoTree, 
-    githubRepoLink, 
-    setGithubRepoLink, 
-    repoDetails, 
     loadingFilePaths 
   } = useRepoStore();
   const { 
@@ -46,16 +45,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const onDeleteConversation = (id: string) => deleteConversation(id);
   const onNewChat = () => newConversation();
 
-  // Mock for now or replace with real logic if available
-  const onRepoFileClick = (path: string) => {
-    // This will be handled by a store action in a future refinement
-  };
-  const onSelectAllFiles = () => {
-    // This will be handled by a store action in a future refinement
-  };
-  const handleGithubEnter = () => {
-    // This will be handled by a store action in a future refinement
-  };
 
   return (
     <div className={`flex flex-col h-full ${className}`}>
@@ -85,6 +74,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         <button
+          aria-label="New Chat"
           onClick={onNewChat}
           className="p-2 rounded-xl bg-black dark:bg-white text-white dark:text-black hover:scale-105 active:scale-95 transition-all shadow-lg"
           title="New Chat"
@@ -137,6 +127,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 {/* Ranking Toggle */}
                 <div className="flex p-1 bg-gray-100 dark:bg-white/5 rounded-lg">
                   <button
+                    aria-label="Sort by Recent"
                     onClick={() => setHistorySort('time')}
                     className={`p-1.5 rounded-md transition-all ${historySort === 'time' ? 'bg-white dark:bg-zinc-800 text-black dark:text-white shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
                     title="Sort by Recent"
@@ -144,6 +135,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     <Clock className="w-3 h-3" />
                   </button>
                   <button
+                    aria-label="Sort by Resource Usage"
                     onClick={() => setHistorySort('tokens')}
                     className={`p-1.5 rounded-md transition-all ${historySort === 'tokens' ? 'bg-white dark:bg-zinc-800 text-black dark:text-white shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
                     title="Sort by Resource Usage"
@@ -223,6 +215,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           </div>
 
                           <button
+                            aria-label="Delete Conversation"
                             onClick={(e) => {
                               e.stopPropagation();
                               onDeleteConversation(conv.id);
@@ -259,7 +252,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </div>
               <FileExplorer
                 nodes={repoTree}
-                activeFiles={files}
+                activeFiles={activeFiles}
                 onFileClick={onRepoFileClick}
                 loadingFilePaths={loadingFilePaths}
               />
@@ -280,14 +273,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </label>
               </div>
 
-              {files.length === 0 ? (
+              {activeFiles.length === 0 ? (
                 <div className="bg-gray-50 dark:bg-zinc-900 rounded-2xl p-8 text-center border border-transparent">
                   <p className="text-sm font-medium text-gray-400">No files active</p>
                   <p className="text-xs text-gray-300 mt-1">Upload files or select from repo</p>
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {files.map(file => (
+                  {activeFiles.map(file => (
                     <div key={file.id} className="group flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-zinc-900 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors">
                       <div className="flex items-center gap-3 overflow-hidden">
                         <div className="w-8 h-8 rounded-lg bg-white dark:bg-black flex items-center justify-center shrink-0 border border-gray-100 dark:border-zinc-800">
@@ -302,6 +295,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         </span>
                       </div>
                       <button
+                        aria-label="Remove File"
                         onClick={() => onRemoveFile(file.id)}
                         className="opacity-100 md:opacity-0 md:group-hover:opacity-100 p-2 text-gray-400 hover:text-red-500 transition-all"
                       >

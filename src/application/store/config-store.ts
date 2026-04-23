@@ -19,6 +19,7 @@ export const useConfigStore = create<ConfigState>((set) => ({
   llmConfig: {
     provider: 'google',
     model: 'gemini-2.0-flash-exp',
+    apiKey: '',
     apiKeys: {
       google: '',
       openai: '',
@@ -26,20 +27,9 @@ export const useConfigStore = create<ConfigState>((set) => ({
       deepseek: '',
       openrouter: ''
     },
-    apiKeysDates: {
-      google: 0,
-      openai: 0,
-      anthropic: 0,
-      deepseek: 0,
-      openrouter: 0
-    },
-    apiKeysFirstUsed: {
-      google: 0,
-      openai: 0,
-      anthropic: 0,
-      deepseek: 0,
-      openrouter: 0
-    }
+    apiKeysDates: {},
+    apiKeysFirstUsed: {},
+    temperature: 0.7
   },
   keyCapabilities: {
     google: { discoveredModels: [] },

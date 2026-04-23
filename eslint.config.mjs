@@ -8,18 +8,6 @@ export default [
     ignores: [".next/", "node_modules/", "*.js"]
   },
   {
-    // Temporary ignore for legacy files pending deletion in Phase 2.
-    // Tracked in: chore/delete-legacy-infra (PR #7), refactor/decompose-app (PR #9-12)
-    ignores: [
-      "src/infrastructure/llmFactory.ts",
-      "src/infrastructure/githubService.ts",
-      "src/infrastructure/keyVerification.ts",
-      "src/core/utils.ts",
-      "src/App.tsx",
-      "src/components/ChatArea.tsx",
-    ]
-  },
-  {
     files: ["**/*.ts", "**/*.tsx"],
     languageOptions: {
       parser: tsParser,
