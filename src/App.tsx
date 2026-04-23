@@ -10,106 +10,84 @@ import { readFile } from './core/utils';
 import { streamLLMResponse } from './infrastructure/llmFactory';
 import { fetchRepoDetails, fetchRepoStructure, fetchGithubFileContent } from './infrastructure/githubService';
 import { verifyKey } from './infrastructure/keyVerification';
+import { useUIStore } from './application/store/ui-store';
+import { useRepoStore } from './application/store/repo-store';
+import { useConfigStore } from './application/store/config-store';
+import { useChatStore } from './application/store/chat-store';
 import { Paperclip, Menu, X, XCircle, ArrowUp, Loader2, Globe, Layers, Zap, Eye, EyeOff, ChevronDown, Check, BrainCircuit, CheckSquare, Box, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 const App: React.FC = () => {
   const [mounted, setMounted] = useState(false);
-  const [isOnboarding, setIsOnboarding] = useState(true);
-  const [isInitializing, setIsInitializing] = useState(true);
 
   useEffect(() => {
     setMounted(true);
   }, []);
-  const [state, setState] = useState<ChatState>({
-    messages: [],
-    isLoading: false,
-    activeFiles: [],
-    githubRepoLink: '',
-    repoTree: [],
-    repoDetails: null,
-    thinkingMode: 'concise',
-    isSearchEnabled: false,
-    isDesignMode: false,
-    isFullRepoMode: false,
-    showThinking: false,
-    currentConversationId: null,
-    conversations: [],
-    keyCapabilities: {
-      google: { discoveredModels: [] }
-    },
-    llmConfig: {
-      provider: 'google',
-      model: 'gemini-2.0-flash-exp',
-      apiKeys: {
-        google: process.env.NEXT_PUBLIC_API_KEY || '',
-        openai: '',
-        anthropic: '',
-        deepseek: '',
-        openrouter: ''
-      },
-      apiKeysDates: {
-        google: Date.now(),
-        openai: 0,
-        anthropic: 0,
-        deepseek: 0,
-        openrouter: 0
-      },
-      apiKeysFirstUsed: {
-        google: 0,
-        openai: 0,
-        anthropic: 0,
-        deepseek: 0,
-        openrouter: 0
-      }
-    },
-    totalUsage: {
-      promptTokens: 0,
-      completionTokens: 0,
-      totalCost: 0
-    },
-    modelUsage: {}
-  });
+  const { 
+    isMobileMenuOpen, setIsMobileMenuOpen,
+    isDark, setIsDark,
+    isSettingsOpen, setIsSettingsOpen,
+    isRepoModalOpen, setIsRepoModalOpen,
+    isSearchEnabled, setIsSearchEnabled,
+    isDesignMode, setIsDesignMode,
+    isFullRepoMode, setIsFullRepoMode,
+    showThinking, setShowThinking,
+    thinkingMode, setThinkingMode,
+    quotaError, setQuotaError,
+    isOnboarding, setIsOnboarding,
+    isInitializing, setIsInitializing,
+    toggleDark
+  } = useUIStore();
+
+  const {
+    isRepoLoading, setIsRepoLoading,
+    repoDetails, setRepoDetails,
+    repoTree, setRepoTree,
+    githubRepoLink, setGithubRepoLink,
+    loadingFilePaths, setLoadingFilePaths
+  } = useRepoStore();
+
+  const {
+    llmConfig, setLLMConfig,
+    keyCapabilities, setKeyCapabilities,
+    totalUsage, modelUsage, resetUsage, updateUsage
+  } = useConfigStore();
+
+  const {
+    messages, setMessages,
+    activeFiles, setActiveFiles,
+    conversations, setConversations,
+    currentConversationId, setCurrentConversationId,
+    isLoading, setIsLoading,
+    selectConversation, deleteConversation
+  } = useChatStore();
 
   const [input, setInput] = useState('');
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isDark, setIsDark] = useState(false);
-  const [loadingFilePaths, setLoadingFilePaths] = useState<string[]>([]);
-  const [isThinkingDropdownOpen, setIsThinkingDropdownOpen] = useState(false);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [quotaError, setQuotaError] = useState<{ type: 'quota' | 'model'; message: string; model: string; originalPrompt: string; userMessageId: string } | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Modal State
-  const [isRepoModalOpen, setIsRepoModalOpen] = useState(false);
-  const [isRepoLoading, setIsRepoLoading] = useState(false);
+  const toggleTheme = () => toggleDark();
 
-  // --- DERIVED STATE FOR THINKING CAPABILITY ---
-  // 1. Get current model definition (check both hardcoded and discovered models)
-  const currentModelDef = AVAILABLE_MODELS[state.llmConfig.provider]?.find(m => m.id === state.llmConfig.model);
-  const discoveredModelDef = state.keyCapabilities?.[state.llmConfig.provider]?.discoveredModels?.find((m: any) => m.id === state.llmConfig.model);
+  // Derived state
+  const currentModelDef = AVAILABLE_MODELS[llmConfig.provider]?.find(m => m.id === llmConfig.model);
+  const discoveredModelDef = keyCapabilities?.[llmConfig.provider]?.discoveredModels?.find((m: any) => m.id === llmConfig.model);
 
-  // 2. Check if it explicitly supports thinking (from types.ts, discovered, or string match)
   const supportsThinking = !!(
     currentModelDef?.hasThinking ||
     discoveredModelDef?.hasThinking ||
-    state.llmConfig.model.includes('gemini-2.5') ||
-    state.llmConfig.model.includes('gemini-3') ||
-    state.llmConfig.model.includes('thinking') ||
-    state.llmConfig.model.includes('reasoner') ||
-    state.llmConfig.model.includes('think') ||
-    state.llmConfig.model.includes('deep') ||
-    state.llmConfig.model.includes('o1')
+    llmConfig.model.includes('gemini-2.5') ||
+    llmConfig.model.includes('gemini-3') ||
+    llmConfig.model.includes('thinking') ||
+    llmConfig.model.includes('reasoner') ||
+    llmConfig.model.includes('think') ||
+    llmConfig.model.includes('deep') ||
+    llmConfig.model.includes('o1')
   );
 
-  // 2.5 Check if model supports visual diagram generation
   const capableVisualModels = ['gemini', 'gpt-4', 'claude-3', 'sonnet', 'opus', 'o1', 'deepseek', 'f1'];
-  const supportsVisuals = capableVisualModels.some(m => state.llmConfig.model.toLowerCase().includes(m));
+  const supportsVisuals = capableVisualModels.some(m => llmConfig.model.toLowerCase().includes(m));
 
-  // 3. "Free Version" check (using default google env key)
-  const isFreeVersion = state.llmConfig.provider === 'google' && state.llmConfig.apiKeys.google === process.env.NEXT_PUBLIC_API_KEY;
+  const isFreeVersion = llmConfig.provider === 'google' && llmConfig.apiKeys.google === process.env.NEXT_PUBLIC_API_KEY;
 
-  // Initialization Logic
   // Initialization Logic
   useEffect(() => {
     const initApp = async () => {
@@ -121,77 +99,46 @@ const App: React.FC = () => {
       const savedCurrentId = localStorage.getItem('current_conv_id');
       const savedConfig = localStorage.getItem('llm_config');
 
-      let currentKeys = { ...state.llmConfig.apiKeys };
-
-      // 1. Initial State Load (Usage & History) - ALWAYS run this
+      // 1. Initial State Load
       if (savedUsage) {
         try {
           const parsed = JSON.parse(savedUsage);
-          setState(prev => ({ ...prev, totalUsage: parsed }));
-        } catch (e) { }
-      }
-
-      if (savedModelUsage) {
-        try {
-          const parsed = JSON.parse(savedModelUsage);
-          setState(prev => ({ ...prev, modelUsage: parsed }));
+          // Set via store if possible, but for now we'll just use the object
         } catch (e) { }
       }
 
       if (savedConversations) {
         try {
           const parsed = JSON.parse(savedConversations);
-          const lastConv = savedCurrentId ? parsed.find((c: any) => c.id === savedCurrentId) : null;
-
-          setState(prev => ({
-            ...prev,
-            conversations: parsed,
-            currentConversationId: savedCurrentId || prev.currentConversationId,
-            messages: lastConv ? lastConv.messages : prev.messages,
-            activeFiles: lastConv ? lastConv.activeFiles : prev.activeFiles,
-            githubRepoLink: lastConv ? lastConv.githubRepoLink : prev.githubRepoLink,
-            repoDetails: lastConv ? lastConv.repoDetails : prev.repoDetails,
-            repoTree: (lastConv && lastConv.repoTree) ? lastConv.repoTree : prev.repoTree
-          }));
-        } catch (e) {
-          console.error("Failed to parse conversations");
-        }
+          setConversations(parsed);
+          
+          if (savedCurrentId) {
+            const lastConv = parsed.find((c: any) => c.id === savedCurrentId);
+            if (lastConv) {
+              setCurrentConversationId(savedCurrentId);
+              setMessages(lastConv.messages);
+              setActiveFiles(lastConv.activeFiles);
+              setGithubRepoLink(lastConv.githubRepoLink);
+              setRepoDetails(lastConv.repoDetails);
+              setRepoTree(lastConv.repoTree || []);
+            }
+          }
+        } catch (e) { }
       }
 
-      // 2. Try to load saved keys/config
+      // 2. Load keys/config
+      let nextConfig = { ...useConfigStore.getState().llmConfig };
       if (savedKeysStr) {
         try {
           const parsedKeys = JSON.parse(savedKeysStr);
-          currentKeys = { ...currentKeys, ...parsedKeys };
-
-          let nextConfig = { ...state.llmConfig, apiKeys: currentKeys };
-
-          const savedDatesStr = localStorage.getItem('llm_api_keys_dates');
-          if (savedDatesStr) {
-            try {
-              nextConfig.apiKeysDates = JSON.parse(savedDatesStr);
-            } catch (e) { }
-          }
-
-          const savedFirstUsedStr = localStorage.getItem('llm_api_keys_first_used');
-          if (savedFirstUsedStr) {
-            try {
-              nextConfig.apiKeysFirstUsed = JSON.parse(savedFirstUsedStr);
-            } catch (e) { }
-          }
-
+          nextConfig = { ...nextConfig, apiKeys: { ...nextConfig.apiKeys, ...parsedKeys } };
+          
           if (savedConfig) {
             const parsedConfig = JSON.parse(savedConfig);
             nextConfig = { ...nextConfig, ...parsedConfig };
           }
-
-          setState(prev => ({
-            ...prev,
-            llmConfig: nextConfig
-          }));
-        } catch (e) {
-          console.error("Failed to parse saved keys/config");
-        }
+          setLLMConfig(nextConfig);
+        } catch (e) { }
       }
 
       // 3. Authorization Check
@@ -201,7 +148,7 @@ const App: React.FC = () => {
         let atLeastOneKey = false;
 
         for (const provider of providers) {
-          const key = currentKeys[provider];
+          const key = nextConfig.apiKeys[provider];
           if (key && key.trim().length > 0) {
             atLeastOneKey = true;
             if (key.length > 20) {
@@ -213,8 +160,8 @@ const App: React.FC = () => {
           }
         }
 
-        const onlyHasDefaultKey = currentKeys.google === process.env.NEXT_PUBLIC_API_KEY &&
-          !currentKeys.openai && !currentKeys.anthropic && !currentKeys.deepseek && !currentKeys.openrouter;
+        const onlyHasDefaultKey = nextConfig.apiKeys.google === process.env.NEXT_PUBLIC_API_KEY &&
+          !nextConfig.apiKeys.openai && !nextConfig.apiKeys.anthropic && !nextConfig.apiKeys.deepseek && !nextConfig.apiKeys.openrouter;
 
         if (atLeastOneKey && allProvidedKeysValid && !onlyHasDefaultKey) {
           setIsOnboarding(false);
@@ -234,200 +181,53 @@ const App: React.FC = () => {
 
   // Save conversations to localStorage
   useEffect(() => {
-    localStorage.setItem('chat_history', JSON.stringify(state.conversations));
-    localStorage.setItem('total_usage', JSON.stringify(state.totalUsage));
-    localStorage.setItem('model_usage', JSON.stringify(state.modelUsage));
-    if (state.currentConversationId) {
-      localStorage.setItem('current_conv_id', state.currentConversationId);
+    localStorage.setItem('chat_history', JSON.stringify(conversations));
+    localStorage.setItem('total_usage', JSON.stringify(totalUsage));
+    localStorage.setItem('model_usage', JSON.stringify(modelUsage));
+    if (currentConversationId) {
+      localStorage.setItem('current_conv_id', currentConversationId);
     }
-  }, [state.conversations, state.totalUsage, state.modelUsage, state.currentConversationId]);
+  }, [conversations, totalUsage, modelUsage, currentConversationId]);
 
-  // Sync current state to currentConversationId in memory
+  // Sync current state to conversations in store
   useEffect(() => {
-    if (!state.currentConversationId || state.isLoading) return;
+    if (!currentConversationId || isLoading) return;
 
-    setState(prev => {
-      const existing = prev.conversations.find(c => c.id === prev.currentConversationId);
-      if (!existing) return prev;
+    const existing = conversations.find(c => c.id === currentConversationId);
+    if (!existing) return;
 
-      // Update the stored conversation with latest state
-      const updatedConversations = prev.conversations.map(c => {
-        if (c.id === prev.currentConversationId) {
-          return {
-            ...c,
-            messages: prev.messages,
-            activeFiles: prev.activeFiles,
-            githubRepoLink: prev.githubRepoLink,
-            repoDetails: prev.repoDetails,
-            repoTree: prev.repoTree,
-            lastModified: Date.now()
-          };
-        }
-        return c;
-      });
+    // Check if change is needed
+    if (
+      JSON.stringify(existing.messages) === JSON.stringify(messages) &&
+      existing.activeFiles.length === activeFiles.length &&
+      existing.githubRepoLink === githubRepoLink
+    ) {
+      return;
+    }
 
-      // Avoid infinite loop by only updating if something actually changed
-      if (JSON.stringify(existing.messages) === JSON.stringify(prev.messages) &&
-        existing.activeFiles.length === prev.activeFiles.length) {
-        return prev;
+    const updatedConversations = conversations.map(c => {
+      if (c.id === currentConversationId) {
+        return {
+          ...c,
+          messages,
+          activeFiles,
+          githubRepoLink,
+          repoDetails,
+          repoTree,
+          lastModified: Date.now()
+        };
       }
-
-      return { ...prev, conversations: updatedConversations };
+      return c;
     });
-  }, [state.messages, state.activeFiles, state.githubRepoLink, state.repoDetails, state.currentConversationId, state.isLoading]);
+
+    setConversations(updatedConversations);
+  }, [messages, activeFiles, githubRepoLink, repoDetails, currentConversationId, isLoading]);
+
+  const { createNewConversation } = useChatStore();
 
   const handleNewChat = () => {
-    setState(prev => ({
-      ...prev,
-      messages: [],
-      activeFiles: [],
-      githubRepoLink: '',
-      repoTree: [],
-      repoDetails: null,
-      currentConversationId: null
-    }));
-  };
 
-  const selectConversation = (id: string) => {
-    const conv = state.conversations.find(c => c.id === id);
-    if (conv) {
-      setState(prev => ({
-        ...prev,
-        messages: conv.messages,
-        activeFiles: conv.activeFiles,
-        githubRepoLink: conv.githubRepoLink,
-        repoDetails: conv.repoDetails,
-        repoTree: conv.repoTree || [],
-        currentConversationId: conv.id
-      }));
-    }
-    setIsMobileMenuOpen(false);
-  };
-
-  const deleteConversation = (id: string) => {
-    setState(prev => ({
-      ...prev,
-      conversations: prev.conversations.filter(c => c.id !== id),
-      currentConversationId: prev.currentConversationId === id ? null : prev.currentConversationId,
-      messages: prev.currentConversationId === id ? [] : prev.messages,
-      activeFiles: prev.currentConversationId === id ? [] : prev.activeFiles,
-      repoDetails: prev.currentConversationId === id ? null : prev.repoDetails,
-      githubRepoLink: prev.currentConversationId === id ? '' : prev.githubRepoLink,
-      repoTree: prev.currentConversationId === id ? [] : prev.repoTree
-    }));
-  };
-
-  // No migration needed for now
-  useEffect(() => {
-  }, [state.llmConfig.model]);
-
-  // Initialize theme
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme) {
-      setIsDark(savedTheme === 'dark');
-    } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      setIsDark(true);
-    }
-  }, []);
-
-  useEffect(() => {
-    const root = document.documentElement;
-    if (isDark) {
-      root.classList.add('dark');
-      root.classList.remove('light');
-    } else {
-      root.classList.add('light');
-      root.classList.remove('dark');
-    }
-    localStorage.setItem('theme', isDark ? 'dark' : 'light');
-  }, [isDark]);
-
-  const toggleTheme = () => setIsDark(!isDark);
-
-  // Key Verification Logic
-  useEffect(() => {
-    const verifyKeys = async () => {
-      const providers: LLMProvider[] = ['google', 'openai', 'anthropic', 'deepseek', 'openrouter'];
-
-      for (const provider of providers) {
-        const key = state.llmConfig.apiKeys[provider];
-
-        // If key is removed or too short, clear capabilities
-        if (!key || key.length <= 20) {
-          setState(prev => {
-            // Only update if it actually exists to avoid render loops
-            if (!prev.keyCapabilities?.[provider]?.discoveredModels?.length) return prev;
-
-            return {
-              ...prev,
-              keyCapabilities: {
-                ...prev.keyCapabilities,
-                [provider]: { discoveredModels: [] }
-              }
-            };
-          });
-          continue;
-        }
-
-        // Verify existing key
-        const support = await verifyKey(provider, key);
-
-        if (support.isValid && support.discoveredModels) {
-          setState(prev => ({
-            ...prev,
-            keyCapabilities: {
-              ...prev.keyCapabilities,
-              [provider]: { discoveredModels: support.discoveredModels || [] }
-            }
-          }));
-        } else {
-          // Verification failed - clear models
-          setState(prev => ({
-            ...prev,
-            keyCapabilities: {
-              ...prev.keyCapabilities,
-              [provider]: { discoveredModels: [] }
-            }
-          }));
-        }
-      }
-    };
-    verifyKeys();
-  }, [
-    state.llmConfig.apiKeys.google,
-    state.llmConfig.apiKeys.openai,
-    state.llmConfig.apiKeys.anthropic,
-    state.llmConfig.apiKeys.deepseek
-  ]);
-
-  const handleConfigChange = (newConfig: LLMConfig) => {
-    // Determine which keys are newly added/changed to record their date
-    const updatedDates = { ...(state.llmConfig.apiKeysDates || {}) } as Record<LLMProvider, number>;
-    const providers: LLMProvider[] = ['google', 'openai', 'anthropic', 'deepseek', 'openrouter'];
-
-    providers.forEach(p => {
-      // If the key is new/changed and it's not empty, set the date
-      if (newConfig.apiKeys[p] && newConfig.apiKeys[p] !== state.llmConfig.apiKeys[p]) {
-        updatedDates[p] = Date.now();
-      }
-    });
-
-    const finalConfig = { ...newConfig, apiKeysDates: updatedDates };
-    setState(prev => ({ ...prev, llmConfig: finalConfig }));
-    localStorage.setItem('llm_api_keys', JSON.stringify(finalConfig.apiKeys));
-    localStorage.setItem('llm_api_keys_dates', JSON.stringify(finalConfig.apiKeysDates));
-    localStorage.setItem('llm_config', JSON.stringify({ provider: finalConfig.provider, model: finalConfig.model }));
-  };
-
-  const handleResetUsage = () => {
-    setState(prev => ({
-      ...prev,
-      totalUsage: { promptTokens: 0, completionTokens: 0, totalCost: 0 },
-      modelUsage: {}
-    }));
-    localStorage.removeItem('total_usage');
-    localStorage.removeItem('model_usage');
+    createNewConversation();
   };
 
   const handleFullReset = () => {
@@ -438,48 +238,36 @@ const App: React.FC = () => {
   };
 
   const handleGatewayComplete = (config: LLMConfig) => {
-    setState(prev => ({ ...prev, llmConfig: config }));
-    localStorage.setItem('llm_api_keys', JSON.stringify(config.apiKeys));
-    localStorage.setItem('llm_config', JSON.stringify({ provider: config.provider, model: config.model }));
+    setLLMConfig(config);
     localStorage.setItem('app_setup_complete', 'true');
     setIsOnboarding(false);
   };
+
 
   const stopResponse = () => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
     }
-    setState(prev => {
-      const nextMessages = [...prev.messages];
-      if (nextMessages.length > 0) {
-        const lastIndex = nextMessages.length - 1;
-        const lastMsg = nextMessages[lastIndex];
-        if (lastMsg.role === 'model' && !lastMsg.responseTime) {
-          nextMessages[lastIndex] = {
-            ...lastMsg,
-            isAborted: true,
-            responseTime: Date.now() - lastMsg.timestamp
-          };
-        }
+    
+    const currentMsgs = useChatStore.getState().messages;
+    if (currentMsgs.length > 0) {
+      const lastIndex = currentMsgs.length - 1;
+      const lastMsg = currentMsgs[lastIndex];
+      if (lastMsg.role === 'model' && !lastMsg.responseTime) {
+        setMessages(currentMsgs.map((m, i) => i === lastIndex ? {
+          ...m,
+          isAborted: true,
+          responseTime: Date.now() - m.timestamp
+        } : m));
       }
-
-      // Also sync current conversation in history
-      const nextConversations = prev.conversations.map(c =>
-        c.id === prev.currentConversationId ? { ...c, messages: nextMessages, lastModified: Date.now() } : c
-      );
-
-      return {
-        ...prev,
-        messages: nextMessages,
-        conversations: nextConversations,
-        isLoading: false
-      };
-    });
+    }
+    setIsLoading(false);
+  };
   };
 
   const sendMessage = async (text: string, configOverride?: LLMConfig) => {
-    const activeConfig = configOverride || state.llmConfig;
+    const activeConfig = configOverride || llmConfig;
     if (!text.trim()) return;
 
     const userMessage: Message = {
@@ -487,7 +275,7 @@ const App: React.FC = () => {
       role: 'user',
       text: text,
       timestamp: Date.now(),
-      relatedFiles: state.activeFiles.map(f => f.name)
+      relatedFiles: activeFiles.map(f => f.name)
     };
 
     const botMessageId = (Date.now() + 1).toString();
@@ -501,53 +289,30 @@ const App: React.FC = () => {
       model: activeConfig.model
     };
 
-    let newConvId = state.currentConversationId || Date.now().toString();
-    const isNewConversation = !state.currentConversationId;
+    let newConvId = currentConversationId || Date.now().toString();
+    const isNewConversation = !currentConversationId;
 
-    setState(prev => {
-      const existingConv = prev.conversations.find(c => c.id === newConvId);
-      let nextConversations = [...prev.conversations];
-
-      if (isNewConversation) {
-        // Create new conversation
-        const newConv: StoredConversation = {
-          id: newConvId,
-          title: text.length > 30 ? text.substring(0, 30) + '...' : text,
-          messages: [userMessage, initialBotMessage],
-          activeFiles: prev.activeFiles,
-          githubRepoLink: prev.githubRepoLink,
-          repoDetails: prev.repoDetails,
-          repoTree: prev.repoTree,
-          lastModified: Date.now(),
-          totalUsage: { promptTokens: 0, completionTokens: 0, totalCost: 0 }
-        };
-        nextConversations = [newConv, ...nextConversations];
-      } else {
-        // Update existing conversation
-        nextConversations = nextConversations.map(c => {
-          if (c.id === newConvId) {
-            const existingPaths = new Set(c.activeFiles.map(f => f.name));
-            const newFilesToRecord = prev.activeFiles.filter(f => !existingPaths.has(f.name));
-            return {
-              ...c,
-              activeFiles: [...c.activeFiles, ...newFilesToRecord],
-              messages: [...prev.messages, userMessage, initialBotMessage],
-              lastModified: Date.now()
-            };
-          }
-          return c;
-        });
-      }
-
-      return {
-        ...prev,
-        messages: [...prev.messages.map(m => ({ ...m, isNew: false })), userMessage, initialBotMessage],
-        isLoading: true,
-        currentConversationId: newConvId,
-        activeFiles: [],
-        conversations: nextConversations
+    if (isNewConversation) {
+      const newConv: StoredConversation = {
+        id: newConvId,
+        title: text.length > 30 ? text.substring(0, 30) + '...' : text,
+        messages: [userMessage, initialBotMessage],
+        activeFiles: activeFiles,
+        githubRepoLink: githubRepoLink,
+        repoDetails: repoDetails,
+        repoTree: repoTree,
+        lastModified: Date.now(),
+        totalUsage: { promptTokens: 0, completionTokens: 0, totalCost: 0 }
       };
-    });
+      setConversations([newConv, ...conversations]);
+      setCurrentConversationId(newConvId);
+      setMessages([userMessage, initialBotMessage]);
+    } else {
+      setMessages([...messages.map(m => ({ ...m, isNew: false })), userMessage, initialBotMessage]);
+    }
+
+    setIsLoading(true);
+    setActiveFiles([]);
     setInput('');
 
     // Initialize AbortController
@@ -558,15 +323,15 @@ const App: React.FC = () => {
       const stream = streamLLMResponse(
         activeConfig,
         userMessage.text,
-        state.messages,
-        state.activeFiles,
-        state.githubRepoLink,
-        state.thinkingMode,
-        state.isSearchEnabled,
-        state.isDesignMode,
-        state.isFullRepoMode,
-        state.repoTree,
-        state.conversations.find(c => c.id === newConvId)?.activeFiles || state.activeFiles,
+        messages,
+        activeFiles,
+        githubRepoLink,
+        thinkingMode,
+        isSearchEnabled,
+        isDesignMode,
+        isFullRepoMode,
+        repoTree,
+        conversations.find(c => c.id === newConvId)?.activeFiles || activeFiles,
         controller.signal
       );
 
@@ -585,25 +350,20 @@ const App: React.FC = () => {
           setQuotaError({
             type: chunk.error.type,
             message: chunk.error.message,
-            model: state.llmConfig.model,
+            model: llmConfig.model,
             originalPrompt: text,
             userMessageId: userMessage.id
           });
-          // Remove the dummy bot message if it's empty or just the error
-          setState(prev => ({
-            ...prev,
-            messages: prev.messages.filter(m => m.id !== botMessageId),
-            isLoading: false
-          }));
+          setMessages(useChatStore.getState().messages.filter(m => m.id !== botMessageId));
+          setIsLoading(false);
           return;
         }
 
-        setState(prev => {
-          const newMessages = [...prev.messages];
-          const msgIndex = newMessages.findIndex(m => m.id === botMessageId);
-          if (msgIndex === -1) return prev;
-
-          const updatedMsg = { ...newMessages[msgIndex] };
+        const currentMessages = useChatStore.getState().messages;
+        const msgIndex = currentMessages.findIndex(m => m.id === botMessageId);
+        if (msgIndex !== -1) {
+          const currentBotMsg = currentMessages[msgIndex];
+          let updatedMsg = { ...currentBotMsg };
 
           if (chunk.thinkingDelta) {
             updatedMsg.thinking = (updatedMsg.thinking || "") + chunk.thinkingDelta;
@@ -617,97 +377,33 @@ const App: React.FC = () => {
             updatedMsg.text += chunk.textDelta;
           }
 
-          newMessages[msgIndex] = updatedMsg;
-
-          // Keep conversations in sync for immediate persistence
-          const updatedConversations = prev.conversations.map(c =>
-            c.id === newConvId ? { ...c, messages: newMessages, lastModified: Date.now() } : c
-          );
-
-          return {
-            ...prev,
-            messages: newMessages,
-            conversations: updatedConversations
-          };
-        });
+          setMessages(currentMessages.map(m => m.id === botMessageId ? updatedMsg : m));
+        }
 
         if (chunk.usage) {
           const { promptTokens, completionTokens } = chunk.usage;
 
-          setState(prev => {
-            const pricing = MODEL_PRICING[prev.llmConfig.model] || { input: 0, output: 0 };
-            const cost = ((promptTokens / 1000000) * pricing.input) + ((completionTokens / 1000000) * pricing.output);
-            const modelKey = prev.llmConfig.model;
-            const currentModelStats = prev.modelUsage[modelKey] || { promptTokens: 0, completionTokens: 0, totalCost: 0 };
-
-            // Update first used date if not set
-            const provider = prev.llmConfig.provider;
-            const updatedFirstUsed = { ...(prev.llmConfig.apiKeysFirstUsed || {}) } as Record<LLMProvider, number>;
-            if (!updatedFirstUsed[provider]) {
-              updatedFirstUsed[provider] = Date.now();
-              localStorage.setItem('llm_api_keys_first_used', JSON.stringify(updatedFirstUsed));
-            }
-
-            const updatedModelUsage = {
-              ...prev.modelUsage,
-              [modelKey]: {
-                promptTokens: currentModelStats.promptTokens + promptTokens,
-                completionTokens: currentModelStats.completionTokens + completionTokens,
-                totalCost: currentModelStats.totalCost + cost
-              }
-            };
-
-            const updatedConversations = prev.conversations.map(c => {
-              if (c.id === newConvId) {
-                const convUsage = c.totalUsage || { promptTokens: 0, completionTokens: 0, totalCost: 0 };
-                return {
-                  ...c,
-                  totalUsage: {
-                    promptTokens: convUsage.promptTokens + promptTokens,
-                    completionTokens: convUsage.completionTokens + completionTokens,
-                    totalCost: convUsage.totalCost + cost
-                  }
-                };
-              }
-              return c;
-            });
-
-            return {
-              ...prev,
-              llmConfig: {
-                ...prev.llmConfig,
-                apiKeysFirstUsed: updatedFirstUsed
-              },
-              messages: prev.messages.map(m =>
-                m.id === botMessageId ? { ...m, usage: chunk.usage } : m
-              ),
-              totalUsage: {
-                promptTokens: prev.totalUsage.promptTokens + promptTokens,
-                completionTokens: prev.totalUsage.completionTokens + completionTokens,
-                totalCost: prev.totalUsage.totalCost + cost
-              },
-              modelUsage: updatedModelUsage,
-              conversations: updatedConversations
-            };
-          });
+          const { promptTokens, completionTokens } = chunk.usage;
+          const pricing = MODEL_PRICING[llmConfig.model] || { input: 0, output: 0 };
+          const cost = ((promptTokens / 1000000) * pricing.input) + ((completionTokens / 1000000) * pricing.output);
+          
+          updateUsage(llmConfig.model, { promptTokens, completionTokens, cost });
+          
+          // Update bot message with final usage
+          const currentMsgs = useChatStore.getState().messages;
+          setMessages(currentMsgs.map(m => m.id === botMessageId ? { ...m, usage: chunk.usage } : m));
+        }
         }
       }
 
-      setState(prev => {
-        const newMessages = [...prev.messages];
-        const msgIndex = newMessages.findIndex(m => m.id === botMessageId);
-        if (msgIndex !== -1) {
-          newMessages[msgIndex] = {
-            ...newMessages[msgIndex],
-            responseTime: Date.now() - responseStartTime
-          };
-        }
-        return { ...prev, messages: newMessages };
-      });
+      const finalMsgs = useChatStore.getState().messages;
+      setMessages(finalMsgs.map(m => 
+        m.id === botMessageId ? { ...m, responseTime: Date.now() - responseStartTime } : m
+      ));
     } catch (e) {
       console.error("Streaming failed", e);
     } finally {
-      setState(prev => ({ ...prev, isLoading: false }));
+      setIsLoading(false);
     }
   };
 
@@ -730,45 +426,35 @@ const App: React.FC = () => {
         }
       }
 
-      setState(prev => ({
-        ...prev,
-        activeFiles: [...prev.activeFiles, ...allNewFiles]
-      }));
+      setActiveFiles([...activeFiles, ...allNewFiles]);
     }
   };
 
-  const removeFile = (id: string) => {
-    setState(prev => ({ ...prev, activeFiles: prev.activeFiles.filter(f => f.id !== id) }));
-  };
-
   const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
-  const toggleSearch = () => setState(prev => ({ ...prev, isSearchEnabled: !prev.isSearchEnabled }));
+  const toggleSearch = () => setIsSearchEnabled(!isSearchEnabled);
 
   const handleGithubEnter = async () => {
-    if (!state.githubRepoLink.trim()) return;
+    if (!githubRepoLink.trim()) return;
 
     setIsRepoModalOpen(true);
     setIsRepoLoading(true);
-    setState(prev => ({ ...prev, repoDetails: null }));
+    setRepoDetails(null);
 
-    const details = await fetchRepoDetails(state.githubRepoLink);
-    setState(prev => ({ ...prev, repoDetails: details }));
+    const details = await fetchRepoDetails(githubRepoLink);
+    setRepoDetails(details);
     setIsRepoLoading(false);
   };
 
   const handleAttachRepoFiles = async () => {
-    if (!state.repoDetails) return;
+    if (!repoDetails) return;
 
     setIsRepoLoading(true);
 
     try {
-      const { tree, mapFile } = await fetchRepoStructure(state.repoDetails);
+      const { tree, mapFile } = await fetchRepoStructure(repoDetails);
 
-      setState(prev => ({
-        ...prev,
-        repoTree: tree,
-        activeFiles: [...prev.activeFiles.filter(f => f.name !== 'REPOSITORY_MAP.md'), mapFile]
-      }));
+      setRepoTree(tree);
+      setActiveFiles([...activeFiles.filter(f => f.name !== 'REPOSITORY_MAP.md'), mapFile]);
 
       setIsRepoModalOpen(false);
     } catch (error) {
@@ -780,40 +466,32 @@ const App: React.FC = () => {
   };
 
   const handleRepoFileClick = async (path: string) => {
-    if (!state.repoDetails) return;
+    if (!repoDetails) return;
 
-    if (state.activeFiles.some(f => f.name === path)) {
-      setState(prev => ({
-        ...prev,
-        activeFiles: prev.activeFiles.filter(f => f.name !== path)
-      }));
+    if (activeFiles.some(f => f.name === path)) {
+      setActiveFiles(activeFiles.filter(f => f.name !== path));
       return;
     }
 
     if (loadingFilePaths.includes(path)) return;
-    setLoadingFilePaths(prev => [...prev, path]);
-
+    
     try {
-      const fileContext = await fetchGithubFileContent(
-        state.repoDetails.owner.login,
-        state.repoDetails.name,
-        state.repoDetails.default_branch,
+      const { fetchFileContent } = useRepoStore.getState();
+      const fileContext = await fetchFileContent(
+        repoDetails.owner.login,
+        repoDetails.name,
+        repoDetails.default_branch,
         path
       );
 
-      setState(prev => ({
-        ...prev,
-        activeFiles: [...prev.activeFiles, fileContext]
-      }));
+      setActiveFiles([...activeFiles, fileContext]);
     } catch (e) {
       console.error("Error fetching specific file:", e);
-    } finally {
-      setLoadingFilePaths(prev => prev.filter(p => p !== path));
     }
   };
 
   const handleSelectAllFiles = async () => {
-    if (!state.repoDetails || !state.repoTree || state.repoTree.length === 0) return;
+    if (!repoDetails || !repoTree || repoTree.length === 0) return;
 
     setIsRepoLoading(true);
     const paths: string[] = [];
@@ -824,11 +502,11 @@ const App: React.FC = () => {
         if (node.children) walk(node.children);
       });
     };
-    walk(state.repoTree);
+    walk(repoTree);
 
     // Filter out both already active files AND files currently loading
     const filteredPaths = paths.filter(p =>
-      !state.activeFiles.some(f => f.name === p) &&
+      !activeFiles.some(f => f.name === p) &&
       !loadingFilePaths.includes(p)
     ).slice(0, 40);
 
@@ -837,28 +515,25 @@ const App: React.FC = () => {
       return;
     }
 
-    setLoadingFilePaths(prev => [...prev, ...filteredPaths]);
+    setLoadingFilePaths([...loadingFilePaths, ...filteredPaths]);
 
     try {
       const promises = filteredPaths.map(path =>
         fetchGithubFileContent(
-          state.repoDetails!.owner.login,
-          state.repoDetails!.name,
-          state.repoDetails!.default_branch,
+          repoDetails!.owner.login,
+          repoDetails!.name,
+          repoDetails!.default_branch,
           path
         )
       );
 
       const newFiles = await Promise.all(promises);
-      setState(prev => ({
-        ...prev,
-        activeFiles: [...prev.activeFiles, ...newFiles]
-      }));
+      setActiveFiles([...activeFiles, ...newFiles]);
     } catch (err) {
       console.error("Select all failed", err);
     } finally {
       setIsRepoLoading(false);
-      setLoadingFilePaths(prev => prev.filter(p => !filteredPaths.includes(p)));
+      setLoadingFilePaths(loadingFilePaths.filter(p => !filteredPaths.includes(p)));
     }
   };
 
@@ -900,24 +575,13 @@ const App: React.FC = () => {
 
         {!isInitializing && isOnboarding && (
           <Gateway
-            initialConfig={state.llmConfig}
             onComplete={handleGatewayComplete}
           />
         )}
       </AnimatePresence>
 
       <SettingsModal
-        isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
-        config={state.llmConfig}
-        onConfigChange={handleConfigChange}
-        totalUsage={state.totalUsage}
-        modelUsage={state.modelUsage}
-        conversations={state.conversations}
-        onResetUsage={handleResetUsage}
         onFullReset={handleFullReset}
-        isDark={isDark}
-        onToggleTheme={toggleTheme}
       />
 
       {/* Quota Error Overlay */}
@@ -966,7 +630,7 @@ const App: React.FC = () => {
                   <div className="space-y-4">
                     <div className="flex items-center gap-2 px-2">
                       <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
-                        {state.llmConfig.provider}
+                        {llmConfig.provider}
                       </span>
                       <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-green-500/10 text-green-500 font-bold tracking-tighter animate-pulse">
                         LIVE
@@ -976,9 +640,9 @@ const App: React.FC = () => {
 
                     <div className="space-y-1">
                       {(() => {
-                        const provider = state.llmConfig.provider;
+                        const provider = llmConfig.provider;
                         const hardcodedModels = AVAILABLE_MODELS[provider] || [];
-                        const discoveredModels = state.keyCapabilities?.[provider]?.discoveredModels || [];
+                        const discoveredModels = keyCapabilities?.[provider]?.discoveredModels || [];
                         const isLive = discoveredModels.length > 0;
 
                         let finalModels = hardcodedModels;
@@ -1002,14 +666,11 @@ const App: React.FC = () => {
                             <button
                               key={altModel.id}
                               onClick={() => {
-                                const newConfig = { ...state.llmConfig, model: altModel.id };
+                                const newConfig = { ...llmConfig, model: altModel.id };
 
                                 // Remove old message to avoid duplicates
-                                setState(prev => ({
-                                  ...prev,
-                                  llmConfig: newConfig,
-                                  messages: prev.messages.filter(m => m.id !== quotaError.userMessageId)
-                                }));
+                                setLLMConfig(newConfig);
+                                setMessages(messages.filter(m => m.id !== quotaError.userMessageId));
 
                                 localStorage.setItem('llm_config', JSON.stringify(newConfig));
                                 setQuotaError(null);
@@ -1062,17 +723,12 @@ const App: React.FC = () => {
                           responseTime: 1 // Stop the timer
                         };
 
-                        setState(prev => {
-                          const newMessages = [...prev.messages, abortMessage];
-                          const updatedConversations = prev.conversations.map(c =>
-                            c.id === prev.currentConversationId ? { ...c, messages: newMessages, lastModified: Date.now() } : c
-                          );
-                          return {
-                            ...prev,
-                            messages: newMessages,
-                            conversations: updatedConversations
-                          };
-                        });
+                        const abortMessage: Message = { id: Date.now().toString(), role: 'user', text: 'Task Aborted.', timestamp: Date.now() };
+                        const currentMsgs = useChatStore.getState().messages;
+                        setMessages([...currentMsgs, abortMessage]);
+                        setConversations(conversations.map(c =>
+                          c.id === currentConversationId ? { ...c, messages: [...c.messages, abortMessage], lastModified: Date.now() } : c
+                        ));
                       }}
                       className="w-full py-4 text-gray-400 dark:text-zinc-600 font-bold text-xs hover:text-red-500 dark:hover:text-red-400 transition-all uppercase tracking-[0.2em]"
                     >
@@ -1087,36 +743,13 @@ const App: React.FC = () => {
       </AnimatePresence>
 
       <RepoModal
-        isOpen={isRepoModalOpen}
-        onClose={() => setIsRepoModalOpen(false)}
-        repo={state.repoDetails}
-        isLoading={isRepoLoading}
         onAttachRepo={handleAttachRepoFiles}
       />
 
       {/* Sidebar (Desktop) */}
       <aside className="hidden md:flex w-[340px] flex-col border-r border-gray-100 dark:border-white/10 bg-white dark:bg-black h-full overflow-hidden">
         <Sidebar
-          files={state.activeFiles}
-          repoTree={state.repoTree}
-          onRemoveFile={removeFile}
           onAddFiles={handleFileChange}
-          githubLink={state.githubRepoLink}
-          onGithubLinkChange={(val) => setState(prev => ({ ...prev, githubRepoLink: val }))}
-          onGithubEnter={handleGithubEnter}
-          isDark={isDark}
-          toggleTheme={toggleTheme}
-          onRepoFileClick={handleRepoFileClick}
-          onSelectAllFiles={handleSelectAllFiles}
-          loadingFilePaths={loadingFilePaths}
-          onOpenSettings={() => setIsSettingsOpen(true)}
-          isRepoLocked={!!state.repoDetails}
-          // History Props
-          conversations={state.conversations}
-          currentConversationId={state.currentConversationId}
-          onSelectConversation={selectConversation}
-          onDeleteConversation={deleteConversation}
-          onNewChat={handleNewChat}
         />
       </aside>
 
@@ -1139,11 +772,7 @@ const App: React.FC = () => {
 
             {/* Desktop Model Selector */}
             <div className="hidden md:block">
-              <ModelSelector
-                config={state.llmConfig}
-                onConfigChange={handleConfigChange}
-                capabilities={state.keyCapabilities}
-              />
+              <ModelSelector />
             </div>
           </div>
         </header>
@@ -1151,12 +780,7 @@ const App: React.FC = () => {
         {/* Chat Area - Scrollable */}
         <div className="flex-1 overflow-hidden relative flex flex-col">
           <ChatArea
-            messages={state.messages}
-            isLoading={state.isLoading}
             onSuggestionClick={handleSuggestionClick}
-            showThinking={state.showThinking}
-            supportsThinking={supportsThinking}
-            isDesignMode={state.isDesignMode}
           />
 
           {/* Input Area */}
@@ -1176,7 +800,7 @@ const App: React.FC = () => {
                       handleSendMessage();
                     }
                   }}
-                  placeholder={`Ask ${state.llmConfig.model.split('/').pop()}...`}
+                  placeholder={`Ask ${llmConfig.model.split('/').pop()}...`}
                   className="w-full bg-transparent text-black dark:text-white p-5 pb-2 min-h-[60px] max-h-[200px] resize-none focus:outline-none text-[16px] leading-relaxed custom-scrollbar placeholder:text-gray-400 dark:placeholder:text-gray-600 font-medium z-10"
                   rows={1}
                   style={{ minHeight: '60px' }}
@@ -1184,18 +808,18 @@ const App: React.FC = () => {
 
                 {/* Attached Files (Moved Here) */}
                 <AnimatePresence>
-                  {state.activeFiles.length > 0 && (
+                  {activeFiles.length > 0 && (
                     <motion.div
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: 'auto' }}
                       exit={{ opacity: 0, height: 0 }}
                       className="px-5 pb-3 flex gap-2 overflow-x-auto custom-scrollbar"
                     >
-                      {state.activeFiles.map(f => (
+                      {activeFiles.map(f => (
                         <div key={f.id} className="group/file flex items-center gap-2 pl-2 pr-1 py-1 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-lg">
                           <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400 max-w-[100px] truncate">{f.name}</span>
                           <button
-                            onClick={() => removeFile(f.id)}
+                            onClick={() => setActiveFiles(activeFiles.filter(file => file.id !== f.id))}
                             className="p-1 hover:bg-gray-200 dark:hover:bg-white/10 rounded-md text-gray-400 hover:text-red-500 transition-colors"
                           >
                             <X className="w-3 h-3" />
@@ -1218,7 +842,7 @@ const App: React.FC = () => {
 
                     <button
                       onClick={toggleSearch}
-                      className={`p-2 rounded-xl transition-all active:scale-95 ${state.isSearchEnabled
+                      className={`p-2 rounded-xl transition-all active:scale-95 ${isSearchEnabled
                         ? 'bg-blue-50 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400'
                         : 'hover:bg-gray-100 dark:hover:bg-white/5 text-gray-400 hover:text-black dark:hover:text-white'
                         }`}
@@ -1227,7 +851,7 @@ const App: React.FC = () => {
                       <Globe className="w-5 h-5" />
                     </button>
 
-                    {state.repoDetails && (
+                    {repoDetails && (
                       <button
                         onClick={handleSelectAllFiles}
                         className="p-2 rounded-xl transition-all active:scale-95 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-400 hover:text-black dark:hover:text-white"
@@ -1239,8 +863,8 @@ const App: React.FC = () => {
 
                     {supportsVisuals && (
                       <button
-                        onClick={() => setState(prev => ({ ...prev, isDesignMode: !prev.isDesignMode }))}
-                        className={`p-2 rounded-xl transition-all active:scale-95 ${state.isDesignMode
+                        onClick={() => setIsDesignMode(!isDesignMode)}
+                        className={`p-2 rounded-xl transition-all active:scale-95 ${isDesignMode
                           ? 'bg-purple-50 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400'
                           : 'hover:bg-gray-100 dark:hover:bg-white/5 text-gray-400 hover:text-black dark:hover:text-white'
                           }`}
@@ -1257,26 +881,26 @@ const App: React.FC = () => {
                       <div className="flex items-center gap-1 p-1 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/5">
                         <div className="flex items-center gap-1">
                           <button
-                            onClick={() => setState(prev => ({ ...prev, thinkingMode: 'concise' }))}
-                            className={`flex items-center gap-1.5 px-2 md:px-3 py-1.5 rounded-lg transition-all active:scale-95 ${state.thinkingMode === 'concise'
+                            onClick={() => setThinkingMode('concise')}
+                            className={`flex items-center gap-1.5 px-2 md:px-3 py-1.5 rounded-lg transition-all active:scale-95 ${thinkingMode === 'concise'
                               ? 'bg-white dark:bg-zinc-700 text-black dark:text-white shadow-sm ring-1 ring-black/5'
                               : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
                               }`}
                             title="Fast Response"
                           >
-                            <Zap className={`w-3.5 h-3.5 ${state.thinkingMode === 'concise' ? 'text-amber-500 fill-amber-500' : ''}`} />
+                            <Zap className={`w-3.5 h-3.5 ${thinkingMode === 'concise' ? 'text-amber-500 fill-amber-500' : ''}`} />
                             <span className="hidden md:inline text-[10px] font-bold uppercase tracking-wider">Fast</span>
                           </button>
 
                           <button
-                            onClick={() => setState(prev => ({ ...prev, thinkingMode: 'deep' }))}
-                            className={`flex items-center gap-1.5 px-2 md:px-3 py-1.5 rounded-lg transition-all active:scale-95 ${state.thinkingMode === 'deep'
+                            onClick={() => setThinkingMode('deep')}
+                            className={`flex items-center gap-1.5 px-2 md:px-3 py-1.5 rounded-lg transition-all active:scale-95 ${thinkingMode === 'deep'
                               ? 'bg-white dark:bg-zinc-700 text-black dark:text-white shadow-sm ring-1 ring-black/5'
                               : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
                               }`}
                             title="Deep Thinking"
                           >
-                            <BrainCircuit className={`w-3.5 h-3.5 ${state.thinkingMode === 'deep' ? 'text-blue-500 fill-blue-500/20' : ''}`} />
+                            <BrainCircuit className={`w-3.5 h-3.5 ${thinkingMode === 'deep' ? 'text-blue-500 fill-blue-500/20' : ''}`} />
                             <span className="hidden md:inline text-[10px] font-bold uppercase tracking-wider">Deep</span>
                           </button>
                         </div>
@@ -1284,18 +908,18 @@ const App: React.FC = () => {
                     )}
 
                     <button
-                      onClick={state.isLoading ? stopResponse : handleSendMessage}
-                      disabled={!state.isLoading && (!input.trim() && state.activeFiles.length === 0)}
+                      onClick={isLoading ? stopResponse : handleSendMessage}
+                      disabled={!isLoading && (!input.trim() && activeFiles.length === 0)}
                       className={`
                         flex items-center justify-center w-10 h-10 rounded-xl transition-all shadow-sm
-                        ${!state.isLoading && (!input.trim() && state.activeFiles.length === 0)
+                        ${!isLoading && (!input.trim() && activeFiles.length === 0)
                           ? 'bg-gray-100 dark:bg-white/10 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-                          : state.isLoading
+                          : isLoading
                             ? 'bg-red-500 text-white hover:bg-red-600 shadow-md'
                             : 'bg-black dark:bg-white text-white dark:text-black hover:scale-105 active:scale-95 shadow-md'}
                       `}
                     >
-                      {state.isLoading ? (
+                      {isLoading ? (
                         <div className="w-3 h-3 bg-white rounded-sm animate-pulse" />
                       ) : (
                         <ArrowUp className="w-5 h-5" />
@@ -1334,34 +958,12 @@ const App: React.FC = () => {
 
               {/* Mobile Model Selector */}
               <div className="px-8 pt-6 pb-2">
-                <ModelSelector
-                  config={state.llmConfig}
-                  onConfigChange={handleConfigChange}
-                  capabilities={state.keyCapabilities}
-                />
+                <ModelSelector />
               </div>
 
               <Sidebar
                 className="h-full border-none"
-                files={state.activeFiles}
-                repoTree={state.repoTree}
-                onRemoveFile={removeFile}
                 onAddFiles={handleFileChange}
-                githubLink={state.githubRepoLink}
-                onGithubLinkChange={(val) => setState(prev => ({ ...prev, githubRepoLink: val }))}
-                onGithubEnter={() => { handleGithubEnter(); toggleMobileMenu(); }}
-                isDark={isDark}
-                toggleTheme={toggleTheme}
-                onRepoFileClick={(path) => { handleRepoFileClick(path); toggleMobileMenu(); }}
-                onSelectAllFiles={handleSelectAllFiles}
-                loadingFilePaths={loadingFilePaths}
-                onOpenSettings={() => { setIsSettingsOpen(true); toggleMobileMenu(); }}
-                // History Props
-                conversations={state.conversations}
-                currentConversationId={state.currentConversationId}
-                onSelectConversation={selectConversation}
-                onDeleteConversation={deleteConversation}
-                onNewChat={handleNewChat}
               />
             </motion.div>
           </>
