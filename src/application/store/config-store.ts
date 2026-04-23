@@ -1,0 +1,98 @@
+import { create } from 'zustand';
+import { LLMConfig, UsageStats, LLMProvider, LLMModel } from '../../core/types';
+
+interface ConfigState {
+  llmConfig: LLMConfig;
+  keyCapabilities: Record<LLMProvider, { discoveredModels: LLMModel[] }>;
+  totalUsage: UsageStats;
+  modelUsage: Record<string, UsageStats>;
+  
+  // Actions
+  setLLMConfig: (config: Partial<LLMConfig>) => void;
+  setApiKey: (provider: LLMProvider, key: string) => void;
+  setKeyCapabilities: (provider: LLMProvider, capabilities: { discoveredModels: LLMModel[] }) => void;
+  updateUsage: (model: string, stats: { promptTokens: number; completionTokens: number; cost: number }) => void;
+  resetUsage: () => void;
+}
+
+export const useConfigStore = create<ConfigState>((set) => ({
+  llmConfig: {
+    provider: 'google',
+    model: 'gemini-2.0-flash-exp',
+    apiKeys: {
+      google: '',
+      openai: '',
+      anthropic: '',
+      deepseek: '',
+      openrouter: ''
+    },
+    apiKeysDates: {
+      google: 0,
+      openai: 0,
+      anthropic: 0,
+      deepseek: 0,
+      openrouter: 0
+    },
+    apiKeysFirstUsed: {
+      google: 0,
+      openai: 0,
+      anthropic: 0,
+      deepseek: 0,
+      openrouter: 0
+    }
+  },
+  keyCapabilities: {
+    google: { discoveredModels: [] },
+    openai: { discoveredModels: [] },
+    anthropic: { discoveredModels: [] },
+    deepseek: { discoveredModels: [] },
+    openrouter: { discoveredModels: [] }
+  },
+  totalUsage: {
+    promptTokens: 0,
+    completionTokens: 0,
+    totalCost: 0
+  },
+  modelUsage: {},
+
+  setLLMConfig: (config) => set((state) => ({ 
+    llmConfig: { ...state.llmConfig, ...config } 
+  })),
+
+  setApiKey: (provider, key) => set((state) => {
+    const apiKeys = { ...state.llmConfig.apiKeys, [provider]: key };
+    const apiKeysDates = { ...state.llmConfig.apiKeysDates, [provider]: Date.now() };
+    return { 
+      llmConfig: { ...state.llmConfig, apiKeys, apiKeysDates } 
+    };
+  }),
+
+  setKeyCapabilities: (provider, capabilities) => set((state) => ({
+    keyCapabilities: { ...state.keyCapabilities, [provider]: capabilities }
+  })),
+
+  updateUsage: (model, stats) => set((state) => {
+    const newTotalUsage = {
+      promptTokens: state.totalUsage.promptTokens + stats.promptTokens,
+      completionTokens: state.totalUsage.completionTokens + stats.completionTokens,
+      totalCost: state.totalUsage.totalCost + stats.cost
+    };
+
+    const currentModelUsage = state.modelUsage[model] || { promptTokens: 0, completionTokens: 0, totalCost: 0 };
+    const newModelUsage = {
+      ...state.modelUsage,
+      [model]: {
+        promptTokens: currentModelUsage.promptTokens + stats.promptTokens,
+        completionTokens: currentModelUsage.completionTokens + stats.completionTokens,
+        totalCost: currentModelUsage.totalCost + stats.cost
+      }
+    };
+
+    return { totalUsage: newTotalUsage, modelUsage: newModelUsage };
+  }),
+
+  resetUsage: () => set({
+    totalUsage: { promptTokens: 0, completionTokens: 0, totalCost: 0 },
+    modelUsage: {}
+  })
+}));
