@@ -174,7 +174,6 @@ async function handleZipArchive(buffer: ArrayBuffer): Promise<FileContext[]> {
     }
     return results;
   } catch (error) {
-    console.error("Error parsing ZIP:", error);
     return [];
   }
 }
@@ -197,7 +196,6 @@ async function handlePdf(buffer: ArrayBuffer): Promise<string> {
     }
     return fullText;
   } catch (e) {
-    console.error("PDF Parse Error", e);
     return "Error parsing PDF file.";
   }
 }
@@ -215,7 +213,6 @@ function handleExcel(buffer: ArrayBuffer): string {
 
     return result;
   } catch (e) {
-    console.error("Excel Parse Error", e);
     return "Error parsing Excel file.";
   }
 }
