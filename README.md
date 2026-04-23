@@ -42,8 +42,8 @@ graph TD
     
     subgraph "Supported Providers"
         Providers --> Google[Google Gemini]
-        Providers --> OpenAI[OpenAI GPT-4o]
-        Providers --> Anthropic[Claude 3.5]
+        Providers --> OpenAI[OpenAI GPT]
+        Providers --> Anthropic[Claude 3.5-4.7]
         Providers --> DeepSeek[DeepSeek R1/V3]
     end
     
