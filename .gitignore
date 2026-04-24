@@ -40,7 +40,6 @@ lerna-debug.log*
 .gemini/
 .cursor/
 .worktrees/
-docs/
 metadata.json
 
 # Editor directories and files
