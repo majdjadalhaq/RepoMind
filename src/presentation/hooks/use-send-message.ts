@@ -4,7 +4,7 @@ import { useChatStore } from '../../application/store/chat-store';
 import { useConfigStore } from '../../application/store/config-store';
 import { useRepoStore } from '../../application/store/repo-store';
 import { useUIStore } from '../../application/store/ui-store';
-import { LLMConfig, Message, MODEL_PRICING,StoredConversation  } from '../../core/types';
+import { LLMConfig, Message, MODEL_PRICING, StoredConversation } from '../../core/types';
 import { streamLLMResponse } from '../../infrastructure/llmFactory';
 
 export const useSendMessage = () => {
@@ -15,7 +15,10 @@ export const useSendMessage = () => {
     activeFiles, setActiveFiles,
     conversations, setConversations,
     currentConversationId, setCurrentConversationId,
-    setIsLoading
+    setIsLoading,
+    setStreamingMessage,
+    updateStreamingMessage,
+    finalizeStreamingMessage
   } = useChatStore();
 
   const {
@@ -43,16 +46,27 @@ export const useSendMessage = () => {
       abortControllerRef.current = null;
     }
     
-    const currentMsgs = useChatStore.getState().messages;
-    if (currentMsgs.length > 0) {
-      const lastIndex = currentMsgs.length - 1;
-      const lastMsg = currentMsgs[lastIndex];
-      if (lastMsg.role === 'model' && !lastMsg.responseTime) {
-        setMessages(currentMsgs.map((m, i) => i === lastIndex ? {
-          ...m,
-          isAborted: true,
-          responseTime: Date.now() - m.timestamp
-        } : m));
+    // Check if we are currently streaming
+    const streamingMsg = useChatStore.getState().streamingMessage;
+    if (streamingMsg && !streamingMsg.responseTime) {
+      updateStreamingMessage({
+        isAborted: true,
+        responseTime: Date.now() - streamingMsg.timestamp
+      });
+      finalizeStreamingMessage();
+    } else {
+      // Fallback for static messages if needed
+      const currentMsgs = useChatStore.getState().messages;
+      if (currentMsgs.length > 0) {
+        const lastIndex = currentMsgs.length - 1;
+        const lastMsg = currentMsgs[lastIndex];
+        if (lastMsg.role === 'model' && !lastMsg.responseTime) {
+          setMessages(currentMsgs.map((m, i) => i === lastIndex ? {
+            ...m,
+            isAborted: true,
+            responseTime: Date.now() - m.timestamp
+          } : m));
+        }
       }
     }
     setIsLoading(false);
@@ -88,7 +102,7 @@ export const useSendMessage = () => {
       const newConv: StoredConversation = {
         id: newConvId,
         title: text.length > 30 ? text.substring(0, 30) + '...' : text,
-        messages: [userMessage, initialBotMessage],
+        messages: [userMessage], // Only user message initially
         activeFiles: activeFiles,
         githubRepoLink: githubRepoLink,
         repoDetails: repoDetails,
@@ -98,11 +112,13 @@ export const useSendMessage = () => {
       };
       setConversations([newConv, ...conversations]);
       setCurrentConversationId(newConvId);
-      setMessages([userMessage, initialBotMessage]);
+      setMessages([userMessage]);
     } else {
-      setMessages([...messages.map(m => ({ ...m, isNew: false })), userMessage, initialBotMessage]);
+      setMessages([...messages.map(m => ({ ...m, isNew: false })), userMessage]);
     }
 
+    // Set the bot message as the streaming message
+    setStreamingMessage(initialBotMessage);
     setIsLoading(true);
     setActiveFiles([]);
 
@@ -131,7 +147,6 @@ export const useSendMessage = () => {
       let hasFinishedThinking = false;
 
       for await (const chunk of stream) {
-        // IMMEDIATE STOP CHECK: If user stopped or signal aborted, break the loop and cease all UI updates
         if (controller.signal.aborted || !abortControllerRef.current) {
           break;
         }
@@ -144,51 +159,45 @@ export const useSendMessage = () => {
             originalPrompt: text,
             userMessageId: userMessage.id
           });
-          setMessages(useChatStore.getState().messages.filter(m => m.id !== botMessageId));
+          setStreamingMessage(null); // Clear streaming message
           setIsLoading(false);
           return;
         }
 
-        const currentMessages = useChatStore.getState().messages;
-        const msgIndex = currentMessages.findIndex(m => m.id === botMessageId);
-        if (msgIndex !== -1) {
-          const currentBotMsg = currentMessages[msgIndex];
-          let updatedMsg = { ...currentBotMsg };
+        const currentStreamingMsg = useChatStore.getState().streamingMessage;
+        if (currentStreamingMsg) {
+          let updates: Partial<Message> = {};
 
           if (chunk.thinkingDelta) {
-            updatedMsg.thinking = (updatedMsg.thinking || "") + chunk.thinkingDelta;
+            updates.thinking = (currentStreamingMsg.thinking || "") + chunk.thinkingDelta;
           }
 
           if (chunk.textDelta) {
-            if (!hasFinishedThinking && updatedMsg.thinking) {
-              updatedMsg.thinkingTime = Date.now() - thinkingStartTime;
+            if (!hasFinishedThinking && currentStreamingMsg.thinking) {
+              updates.thinkingTime = Date.now() - thinkingStartTime;
               hasFinishedThinking = true;
             }
-            updatedMsg.text += chunk.textDelta;
+            updates.text = (currentStreamingMsg.text || "") + chunk.textDelta;
           }
 
-          setMessages(currentMessages.map(m => m.id === botMessageId ? updatedMsg : m));
-        }
+          if (chunk.usage) {
+            const { promptTokens, completionTokens } = chunk.usage;
+            const pricing = MODEL_PRICING[llmConfig.model] || { input: 0, output: 0 };
+            const cost = ((promptTokens / 1000000) * pricing.input) + ((completionTokens / 1000000) * pricing.output);
+            updateUsage(llmConfig.model, { promptTokens, completionTokens, cost });
+            updates.usage = chunk.usage;
+          }
 
-        if (chunk.usage) {
-          const { promptTokens, completionTokens } = chunk.usage;
-          const pricing = MODEL_PRICING[llmConfig.model] || { input: 0, output: 0 };
-          const cost = ((promptTokens / 1000000) * pricing.input) + ((completionTokens / 1000000) * pricing.output);
-          
-          updateUsage(llmConfig.model, { promptTokens, completionTokens, cost });
-          
-          // Update bot message with final usage
-          const currentMsgs = useChatStore.getState().messages;
-          setMessages(currentMsgs.map(m => m.id === botMessageId ? { ...m, usage: chunk.usage } : m));
+          updateStreamingMessage(updates);
         }
       }
 
-      const finalMsgs = useChatStore.getState().messages;
-      setMessages(finalMsgs.map(m => 
-        m.id === botMessageId ? { ...m, responseTime: Date.now() - responseStartTime } : m
-      ));
+      // Finalize the streaming message
+      updateStreamingMessage({ responseTime: Date.now() - responseStartTime });
+      finalizeStreamingMessage();
+
     } catch {
-      // console.error("Streaming failed", e);
+      setStreamingMessage(null);
     } finally {
       setIsLoading(false);
     }
