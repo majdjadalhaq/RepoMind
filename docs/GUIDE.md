@@ -2,10 +2,12 @@
 
 Welcome to RepoMind. This guide will help you master the tool and integrate it into your development workflow.
 
+---
+
 ## 1. Getting Started
 
 ### 1.1 Setting Up API Keys
-1. Open the **Settings** modal (Gear icon in the sidebar).
+1. Open the **[CONFIG] Settings** modal (Gear icon in the sidebar).
 2. Enter your API keys for the providers you wish to use:
    - **Google Gemini**: Get keys from [AI Studio](https://aistudio.google.com/).
    - **Anthropic**: Get keys from [Anthropic Console](https://console.anthropic.com/).
@@ -13,8 +15,8 @@ Welcome to RepoMind. This guide will help you master the tool and integrate it i
    - **DeepSeek**: Get keys from [DeepSeek Platform](https://platform.deepseek.com/).
 
 ### 1.2 Connecting Your Code
-- **Local Files**: Use the "Add Files" button to upload specific files for analysis.
-- **Whole Repository**: Drag and drop a folder (if supported by your browser) or select all files to provide full project context.
+- **[UPLOAD] Local Files**: Use the "Add Files" button to upload specific files for analysis.
+- **[SYNC] Whole Repository**: Drag and drop a folder or select multiple files to provide full project context.
 
 ---
 
@@ -27,15 +29,15 @@ RepoMind can automatically generate diagrams. Try asking:
 The system will render an interactive diagram that you can download or copy.
 
 ### 2.2 Reasoning Mode (Deep Thinking)
-For complex debugging, switch to **Reasoning Mode** (Brain icon). This uses models like **DeepSeek R1** or **Gemini 2.0 Thinking** to perform multi-step logical analysis before providing an answer.
+For complex debugging, switch to **[BRAIN] Reasoning Mode**. This uses models like **DeepSeek R1** or **Gemini 2.0 Thinking** to perform multi-step logical analysis before providing an answer.
 
 ---
 
 ## 3. Power User Tips
 
-- **Context Pinning**: You can "pin" specific files to keep them in the context of every message, even if you switch topics.
-- **Markdown Export**: Click the **Download** icon on any message to save the analysis as a `.md` file for your own documentation.
-- **Theme Switching**: Use the theme toggle in the sidebar or landing page to switch between **Monochrome Dark** and **Light High-Contrast** modes.
+- **[PIN] Context Pinning**: Keep critical files in memory across all conversation turns.
+- **[DOCS] Markdown Export**: Export any analysis turn directly to a `.md` file.
+- **[THEME] Visual Personalization**: Seamlessly toggle between **Monochrome Dark** and **Light High-Contrast** modes.
 
 ---
 
@@ -43,18 +45,24 @@ For complex debugging, switch to **Reasoning Mode** (Brain icon). This uses mode
 
 ### 4.1 Response Terminated
 If a response stops unexpectedly, it may be due to:
-- **Token Limits**: The repository context might be too large for the selected model.
-- **Network Timeout**: Check your internet connection.
-- **Invalid Key**: Verify your API keys in the settings.
+- **[LIMIT] Token Overflow**: Repository context exceeding model limits.
+- **[NET] Timeout**: Interrupted connection to provider gateways.
+- **[AUTH] Invalid Key**: Credential mismatch in configuration.
 
-### 4.2 UI Glitches
-If the UI becomes unresponsive, use the **Reboot** button in the top corner (if the error boundary triggers) or refresh the page. Your keys and history are persisted locally.
+### 4.2 System Recovery
+If the UI becomes unresponsive, the **[REBOOT] Global Boundary** will allow you to refresh while preserving encrypted session data.
 
 ---
 
 ## 5. Security & Privacy
 
-RepoMind is designed with a **Zero-Server** philosophy.
-- **No Analytics**: We do not track your prompts or code.
-- **No Database**: Your history is stored only on your machine.
-- **Direct Connection**: Your browser talks directly to Google/OpenAI/Anthropic APIs.
+RepoMind is built on a **Zero-Server** philosophy.
+- **[DATA] No Analytics**: Zero tracking of prompts or codebase signatures.
+- **[LOCAL] Local Storage**: Encryption-ready persistence for history and keys.
+- **[DIRECT] Gateway**: Browser-to-API direct communication (No proxy).
+
+---
+
+<div align="center">
+  <sub>User Guide v1.0.0</sub>
+</div>

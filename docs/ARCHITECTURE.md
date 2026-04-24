@@ -2,14 +2,16 @@
 
 This document provides a deep technical analysis of the RepoMind architecture, design patterns, and data flow.
 
+---
+
 ## 1. High-Level Design
 
 RepoMind is built as a **Local-First Static Application**. It bypasses the need for a backend proxy by implementing secure, client-side adapters for all major LLM providers.
 
 ### 1.1 Core Principles
-- **Privacy by Design**: API keys are stored in `localStorage` and optionally encrypted. No data is sent to intermediate servers.
-- **Interaction Priority**: Using React 19's `useTransition` and `useOptimistic` to ensure the UI remains fluid during heavy network I/O.
-- **Modular Adapters**: New LLM providers can be added by implementing the `LLMProvider` interface.
+- **[SEC] Privacy by Design**: API keys are stored in `localStorage` and optionally encrypted. No data is sent to intermediate servers.
+- **[PERF] Interaction Priority**: Using React 19's `useTransition` and `useOptimistic` to ensure the UI remains fluid during heavy network I/O.
+- **[MOD] Modular Adapters**: New LLM providers can be added by implementing the `LLMProvider` interface.
 
 ---
 
@@ -31,10 +33,10 @@ The application uses a **Streaming Orchestrator** to handle responses.
 
 We use **Zustand** for global state management, partitioned into specialized stores:
 
-- **Config Store**: Handles API keys, provider settings, and model capabilities.
-- **Chat Store**: Manages conversation history, streaming state, and optimistic message updates.
-- **UI Store**: Controls application appearance (Dark/Light mode), modals, and sidebar state.
-- **Repo Store**: Tracks uploaded files and repository metadata.
+- **[CONFIG] Config Store**: Handles API keys, provider settings, and model capabilities.
+- **[CHAT] Chat Store**: Manages conversation history, streaming state, and optimistic message updates.
+- **[UI] UI Store**: Controls application appearance (Dark/Light mode), modals, and sidebar state.
+- **[REPO] Repo Store**: Tracks uploaded files and repository metadata.
 
 ---
 
@@ -60,5 +62,11 @@ Keys are handled through the `EncryptionService`, which provides an abstraction 
 
 ## 6. Development Workflow
 
-- **Integrity Gate**: A pre-merge script (`scripts/integrity-gate.sh`) that runs Lint, Type-Check, and Vitest suites.
-- **Static Export**: The app is optimized for `next export`, allowing deployment on GitHub Pages, Vercel, or Netlify with zero configuration.
+- **[CI] Integrity Gate**: A pre-merge script (`scripts/integrity-gate.sh`) that runs Lint, Type-Check, and Vitest suites.
+- **[CD] Static Export**: The app is optimized for `next export`, allowing deployment on Vercel or GitHub Pages with zero configuration.
+
+---
+
+<div align="center">
+  <sub>Technical Specification v1.0.0</sub>
+</div>

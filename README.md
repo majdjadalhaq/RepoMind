@@ -4,6 +4,12 @@
   <p><strong>Advanced Code Intelligence & Repository Orchestration</strong></p>
 
   <p>
+    <a href="https://repo-mind-one.vercel.app/">
+      <img src="https://img.shields.io/badge/Live-Deployment-6366f1?style=for-the-badge&logo=vercel" alt="Live Demo" />
+    </a>
+  </p>
+
+  <p>
     <img src="https://img.shields.io/badge/Status-Production--Ready-black?style=flat-square" alt="Status" />
     <img src="https://img.shields.io/badge/Architecture-Local--First-blue?style=flat-square" alt="Architecture" />
     <img src="https://img.shields.io/badge/Security-Zero--Knowledge-green?style=flat-square" alt="Security" />
@@ -26,15 +32,57 @@
 
 ---
 
+## Interface Showcase
+
+<div align="center">
+  <h3>Neural Hub (Desktop)</h3>
+  <img src="public/docs/screenshots/dashboard_dark.png" width="800" alt="Neural Hub Desktop" />
+  <br/><br/>
+  <table>
+    <tr>
+      <td align="center"><b>Mobile Dashboard</b></td>
+      <td align="center"><b>Mobile Sidebar</b></td>
+    </tr>
+    <tr>
+      <td><img src="public/docs/screenshots/mobile_dark.png" width="400" alt="Mobile Dashboard" /></td>
+      <td><img src="public/docs/screenshots/mobile_sidebar.png" width="400" alt="Mobile Sidebar" /></td>
+    </tr>
+  </table>
+  <br/>
+  <table>
+    <tr>
+      <td align="center"><b>Usage Insights (Dark)</b></td>
+      <td align="center"><b>Usage Insights (Light)</b></td>
+    </tr>
+    <tr>
+      <td><img src="public/docs/screenshots/usage_insights_dark.png" width="400" alt="Usage Insights Dark" /></td>
+      <td><img src="public/docs/screenshots/usage_insights_light.png" width="400" alt="Usage Insights Light" /></td>
+    </tr>
+  </table>
+  <br/>
+  <table>
+    <tr>
+      <td align="center"><b>API & Security (Dark)</b></td>
+      <td align="center"><b>API & Security (Light)</b></td>
+    </tr>
+    <tr>
+      <td><img src="public/docs/screenshots/api_security_dark.png" width="400" alt="API Security Dark" /></td>
+      <td><img src="public/docs/screenshots/api_security_light.png" width="400" alt="API Security Light" /></td>
+    </tr>
+  </table>
+</div>
+
+---
+
 ## Tech Stack
 
 | Layer | Technology |
 | :--- | :--- |
-| **Frontend** | React 19, Next.js 15 (Static), TypeScript 5 |
+| **Frontend** | React 19, Next.js 16, TypeScript 5 |
 | **Styling** | Tailwind CSS v4, Framer Motion |
 | **State** | Zustand, TanStack Query |
 | **Graphics** | Mermaid.js, Lucide Icons |
-| **Infrastructure** | GitHub Actions (CI/CD), GitHub Pages |
+| **Infrastructure** | Vercel (Production), GitHub Actions (CI/CD) |
 
 ---
 
@@ -69,7 +117,7 @@ Detailed technical specifications can be found in [docs/ARCHITECTURE.md](docs/AR
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/majd/RepoMind.git
+   git clone https://github.com/majdjadalhaq/RepoMind.git
    cd RepoMind
    ```
 
