@@ -10,6 +10,7 @@ import { useChatStore } from '../application/store/chat-store';
 import { useConfigStore } from '../application/store/config-store';
 import { useUIStore } from '../application/store/ui-store';
 import { AVAILABLE_MODELS, DiscoveredModel, LLMModel, Message } from '../core/types';
+import { Tooltip } from './ui/Tooltip';
 
 const MermaidRenderer = dynamic(
   () => import('./MermaidRenderer').then((mod) => mod.MermaidRenderer),
@@ -46,13 +47,15 @@ const CodeBlock = memo(({ language, children }: { language: string, children?: R
     <div className="my-4 rounded-xl overflow-hidden border border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-zinc-900 group font-mono text-sm code-block-enter animate-in fade-in duration-500">
       <div className="flex items-center justify-between px-4 py-2 bg-gray-100/50 dark:bg-white/5 border-b border-gray-100 dark:border-white/5 select-none">
         <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">{language || 'text'}</span>
-        <button
-          aria-label="Copy code block"
-          onClick={handleCopy}
-          className="text-gray-400 hover:text-black dark:hover:text-white transition-colors"
-        >
-          {copied ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
-        </button>
+        <Tooltip content={copied ? "Copied!" : "Copy Code"} position="left">
+          <button
+            aria-label="Copy code block"
+            onClick={handleCopy}
+            className="text-gray-400 hover:text-black dark:hover:text-white transition-colors"
+          >
+            {copied ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
+          </button>
+        </Tooltip>
       </div>
       <div className="p-4 overflow-x-auto custom-scrollbar">
         <code className="text-gray-800 dark:text-gray-200 text-xs font-medium whitespace-pre block w-full leading-relaxed">{children}</code>
@@ -236,22 +239,24 @@ const MessageItem = memo(({ msg, supportsThinking, showThinking, isLoadingMessag
           absolute top-2 ${msg.role === 'user' ? 'right-full mr-2' : 'left-full ml-2'} 
           flex flex-col gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-200
         `}>
-          <button
-            aria-label="Copy Message"
-            onClick={handleCopy}
-            className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 text-gray-400 hover:text-black dark:hover:text-white transition-colors"
-            title="Copy Message"
-          >
-            <Copy size={14} />
-          </button>
-          <button
-            aria-label="Download as Markdown"
-            onClick={handleDownload}
-            className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 text-gray-400 hover:text-black dark:hover:text-white transition-colors"
-            title="Download as Markdown"
-          >
-            <Download size={14} />
-          </button>
+          <Tooltip content="Copy Message" position={msg.role === 'user' ? 'left' : 'right'}>
+            <button
+              aria-label="Copy Message"
+              onClick={handleCopy}
+              className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 text-gray-400 hover:text-black dark:hover:text-white transition-colors"
+            >
+              <Copy size={14} />
+            </button>
+          </Tooltip>
+          <Tooltip content="Download Markdown" position={msg.role === 'user' ? 'left' : 'right'}>
+            <button
+              aria-label="Download as Markdown"
+              onClick={handleDownload}
+              className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 text-gray-400 hover:text-black dark:hover:text-white transition-colors"
+            >
+              <Download size={14} />
+            </button>
+          </Tooltip>
         </div>
         {msg.thinking && supportsThinking && showThinking && (
           <ThinkingSection text={msg.thinking} thinkingTime={msg.thinkingTime} />

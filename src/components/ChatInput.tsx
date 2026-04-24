@@ -8,6 +8,7 @@ import { useRepoStore } from '../application/store/repo-store';
 import { useUIStore } from '../application/store/ui-store';
 import { AVAILABLE_MODELS,LLMModel  } from '../core/types';
 import { useFileHandler } from '../presentation/hooks/use-file-handler';
+import { Tooltip } from './ui/Tooltip';
 
 interface ChatInputProps {
   onSendMessage: (text: string) => void;
@@ -111,48 +112,53 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
             {/* Left Actions */}
             <div className="flex items-center gap-0.5 md:gap-1">
-              <label aria-label="Attach files" className="p-2.5 md:p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 text-gray-400 hover:text-black dark:hover:text-white cursor-pointer transition-all active:scale-95">
-                <Paperclip className="w-5 h-5" />
-                <input type="file" multiple className="hidden" onChange={handleFileChange} />
-              </label>
+              <Tooltip content="Attach Files" position="top">
+                <label aria-label="Attach files" className="p-2.5 md:p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 text-gray-400 hover:text-black dark:hover:text-white cursor-pointer transition-all active:scale-95">
+                  <Paperclip className="w-5 h-5" />
+                  <input type="file" multiple className="hidden" onChange={handleFileChange} />
+                </label>
+              </Tooltip>
 
-              <button
-                aria-label="Toggle Web Search"
-                aria-pressed={isSearchEnabled}
-                onClick={toggleSearch}
-                className={`p-2.5 md:p-2 rounded-xl transition-all active:scale-95 ${isSearchEnabled
-                  ? 'bg-blue-50 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400'
-                  : 'hover:bg-gray-100 dark:hover:bg-white/5 text-gray-400 hover:text-black dark:hover:text-white'
-                  }`}
-                title="Web Search"
-              >
-                <Globe className="w-5 h-5" />
-              </button>
+              <Tooltip content={isSearchEnabled ? "Disable Web Search" : "Enable Web Search"} position="top">
+                <button
+                  aria-label="Toggle Web Search"
+                  aria-pressed={isSearchEnabled}
+                  onClick={toggleSearch}
+                  className={`p-2.5 md:p-2 rounded-xl transition-all active:scale-95 ${isSearchEnabled
+                    ? 'bg-blue-50 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400'
+                    : 'hover:bg-gray-100 dark:hover:bg-white/5 text-gray-400 hover:text-black dark:hover:text-white'
+                    }`}
+                >
+                  <Globe className="w-5 h-5" />
+                </button>
+              </Tooltip>
 
               {repoDetails && (
-                <button
-                  aria-label="Attach All Repository Files"
-                  onClick={onSelectAllFiles}
-                  className="p-2.5 md:p-2 rounded-xl transition-all active:scale-95 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-400 hover:text-black dark:hover:text-white"
-                  title="Attach All Repository Files"
-                >
-                  <CheckSquare className="w-5 h-5" />
-                </button>
+                <Tooltip content="Attach All Files" position="top">
+                  <button
+                    aria-label="Attach All Repository Files"
+                    onClick={onSelectAllFiles}
+                    className="p-2.5 md:p-2 rounded-xl transition-all active:scale-95 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-400 hover:text-black dark:hover:text-white"
+                  >
+                    <CheckSquare className="w-5 h-5" />
+                  </button>
+                </Tooltip>
               )}
 
               {supportsVisuals && (
-                <button
-                  aria-label="Toggle Design Mode"
-                  aria-pressed={isDesignMode}
-                  onClick={() => setIsDesignMode(!isDesignMode)}
-                  className={`p-2.5 md:p-2 rounded-xl transition-all active:scale-95 ${isDesignMode
-                    ? 'bg-purple-50 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400'
-                    : 'hover:bg-gray-100 dark:hover:bg-white/5 text-gray-400 hover:text-black dark:hover:text-white'
-                    }`}
-                  title="Design Mode"
-                >
-                  <Layers className="w-5 h-5" />
-                </button>
+                <Tooltip content={isDesignMode ? "Disable Design Mode" : "Enable Design Mode"} position="top">
+                  <button
+                    aria-label="Toggle Design Mode"
+                    aria-pressed={isDesignMode}
+                    onClick={() => setIsDesignMode(!isDesignMode)}
+                    className={`p-2.5 md:p-2 rounded-xl transition-all active:scale-95 ${isDesignMode
+                      ? 'bg-purple-50 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400'
+                      : 'hover:bg-gray-100 dark:hover:bg-white/5 text-gray-400 hover:text-black dark:hover:text-white'
+                      }`}
+                  >
+                    <Layers className="w-5 h-5" />
+                  </button>
+                </Tooltip>
               )}
             </div>
 
@@ -161,56 +167,60 @@ export const ChatInput: React.FC<ChatInputProps> = ({
               {supportsThinking && (
                 <div className="flex items-center gap-1 p-1 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/5">
                   <div className="flex items-center gap-1">
-                    <button
-                      aria-label="Concise Mode"
-                      aria-pressed={thinkingMode === 'concise'}
-                      onClick={() => setThinkingMode('concise')}
-                      className={`flex items-center gap-1.5 px-2 md:px-3 py-1.5 rounded-lg transition-all active:scale-95 ${thinkingMode === 'concise'
-                        ? 'bg-white dark:bg-zinc-700 text-black dark:text-white shadow-sm ring-1 ring-black/5'
-                        : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
-                        }`}
-                      title="Fast Response"
-                    >
-                      <Zap className={`w-3.5 h-3.5 ${thinkingMode === 'concise' ? 'text-amber-500 fill-amber-500' : ''}`} />
-                      <span className="hidden md:inline text-[10px] font-bold uppercase tracking-wider">Fast</span>
-                    </button>
+                    <Tooltip content="Concise Mode" position="top">
+                      <button
+                        aria-label="Concise Mode"
+                        aria-pressed={thinkingMode === 'concise'}
+                        onClick={() => setThinkingMode('concise')}
+                        className={`flex items-center gap-1.5 px-2 md:px-3 py-1.5 rounded-lg transition-all active:scale-95 ${thinkingMode === 'concise'
+                          ? 'bg-white dark:bg-zinc-700 text-black dark:text-white shadow-sm ring-1 ring-black/5'
+                          : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+                          }`}
+                      >
+                        <Zap className={`w-3.5 h-3.5 ${thinkingMode === 'concise' ? 'text-amber-500 fill-amber-500' : ''}`} />
+                        <span className="hidden md:inline text-[10px] font-bold uppercase tracking-wider">Fast</span>
+                      </button>
+                    </Tooltip>
 
-                    <button
-                      aria-label="Deep Thinking Mode"
-                      aria-pressed={thinkingMode === 'deep'}
-                      onClick={() => setThinkingMode('deep')}
-                      className={`flex items-center gap-1.5 px-2 md:px-3 py-1.5 rounded-lg transition-all active:scale-95 ${thinkingMode === 'deep'
-                        ? 'bg-white dark:bg-zinc-700 text-black dark:text-white shadow-sm ring-1 ring-black/5'
-                        : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
-                        }`}
-                      title="Deep Thinking"
-                    >
-                      <BrainCircuit className={`w-3.5 h-3.5 ${thinkingMode === 'deep' ? 'text-blue-500 fill-blue-500/20' : ''}`} />
-                      <span className="hidden md:inline text-[10px] font-bold uppercase tracking-wider">Deep</span>
-                    </button>
+                    <Tooltip content="Reasoning Mode" position="top">
+                      <button
+                        aria-label="Deep Thinking Mode"
+                        aria-pressed={thinkingMode === 'deep'}
+                        onClick={() => setThinkingMode('deep')}
+                        className={`flex items-center gap-1.5 px-2 md:px-3 py-1.5 rounded-lg transition-all active:scale-95 ${thinkingMode === 'deep'
+                          ? 'bg-white dark:bg-zinc-700 text-black dark:text-white shadow-sm ring-1 ring-black/5'
+                          : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+                          }`}
+                      >
+                        <BrainCircuit className={`w-3.5 h-3.5 ${thinkingMode === 'deep' ? 'text-blue-500 fill-blue-500/20' : ''}`} />
+                        <span className="hidden md:inline text-[10px] font-bold uppercase tracking-wider">Deep</span>
+                      </button>
+                    </Tooltip>
                   </div>
                 </div>
               )}
 
-              <button
-                aria-label={isLoading ? "Stop generating response" : "Send message"}
-                onClick={isLoading ? onStopResponse : handleSendMessage}
-                disabled={!isLoading && (!input.trim() && activeFiles.length === 0)}
-                className={`
-                  flex items-center justify-center w-11 h-11 md:w-12 md:h-12 rounded-xl transition-all shadow-sm
-                  ${!isLoading && (!input.trim() && activeFiles.length === 0)
-                    ? 'bg-gray-100 dark:bg-white/10 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-                    : isLoading
-                      ? 'bg-red-500 text-white hover:bg-red-600 shadow-md'
-                      : 'bg-black dark:bg-white text-white dark:text-black hover:scale-105 active:scale-95 shadow-md'}
-                `}
-              >
-                {isLoading ? (
-                  <div className="w-3 h-3 bg-white rounded-sm animate-pulse" />
-                ) : (
-                  <ArrowUp className="w-5 h-5" />
-                )}
-              </button>
+                <Tooltip content={isLoading ? "Stop" : "Send Message"} position="left">
+                  <button
+                    aria-label={isLoading ? "Stop generating response" : "Send message"}
+                    onClick={isLoading ? onStopResponse : handleSendMessage}
+                    disabled={!isLoading && (!input.trim() && activeFiles.length === 0)}
+                    className={`
+                      flex items-center justify-center w-11 h-11 md:w-12 md:h-12 rounded-xl transition-all shadow-sm
+                      ${!isLoading && (!input.trim() && activeFiles.length === 0)
+                        ? 'bg-gray-100 dark:bg-white/10 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                        : isLoading
+                          ? 'bg-red-500 text-white hover:bg-red-600 shadow-md'
+                          : 'bg-black dark:bg-white text-white dark:text-black hover:scale-105 active:scale-95 shadow-md'}
+                    `}
+                  >
+                    {isLoading ? (
+                      <div className="w-3 h-3 bg-white rounded-sm animate-pulse" />
+                    ) : (
+                      <ArrowUp className="w-5 h-5" />
+                    )}
+                  </button>
+                </Tooltip>
             </div>
 
           </div>
