@@ -1,6 +1,6 @@
-import { RepoDetails, RepoContent, FileContext, FileNode } from "../core/types";
-import { buildFileTree } from "../core/utils";
 import { AppError } from "../core/lib/errors";
+import { FileContext, FileNode,RepoContent, RepoDetails } from "../core/types";
+import { buildFileTree } from "../core/utils";
 
 interface GitHubTreeItem {
   path: string;

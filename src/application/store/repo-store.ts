@@ -1,6 +1,7 @@
 import { create } from 'zustand';
-import { RepoDetails, FileNode, FileContext } from '../../core/types';
-import { fetchRepoDetails, fetchRepoStructure, fetchGithubFileContent } from '../../infrastructure/githubService';
+
+import { FileContext,FileNode, RepoDetails } from '../../core/types';
+import { fetchGithubFileContent,fetchRepoDetails, fetchRepoStructure } from '../../infrastructure/githubService';
 
 interface RepoState {
   repoDetails: RepoDetails | null;

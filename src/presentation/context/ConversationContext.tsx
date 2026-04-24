@@ -1,7 +1,9 @@
-import React, { createContext, useContext, ReactNode } from 'react';
-import { useConversations as useConversationsHook } from '../hooks/use-conversations';
+import React, { createContext, ReactNode, useContext } from 'react';
+
+import { AppError } from '../../core/lib/errors';
 import { ChatMessage, LLMProvider } from '../../core/types/ai';
 import { Conversation } from '../../core/types/chat';
+import { useConversations as useConversationsHook } from '../hooks/use-conversations';
 
 interface ConversationContextType {
   conversations: Conversation[];
@@ -28,7 +30,7 @@ export const ConversationProvider: React.FC<{ children: ReactNode }> = ({ childr
 export const useConversations = () => {
   const context = useContext(ConversationContext);
   if (context === undefined) {
-    throw new Error('useConversations must be used within a ConversationProvider');
+    throw new AppError('INTERNAL_ERROR', 'useConversations must be used within a ConversationProvider');
   }
   return context;
 };

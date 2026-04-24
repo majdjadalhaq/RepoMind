@@ -1,6 +1,6 @@
+import { AlertCircle, ArrowUpRight,X } from 'lucide-react';
+import { AnimatePresence, motion, useSpring, useTransform } from 'motion/react';
 import React, { useEffect } from 'react';
-import { X, AlertCircle, ArrowUpRight } from 'lucide-react';
-import { motion, AnimatePresence, useSpring, useTransform } from 'motion/react';
 
 import { useRepoStore } from '../application/store/repo-store';
 import { useUIStore } from '../application/store/ui-store';

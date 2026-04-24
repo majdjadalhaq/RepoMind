@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
-import { LLMConfig, LLMProvider } from '../core/types';
-import { Key, Check, ArrowRight, XCircle, ExternalLink, Loader2 } from 'lucide-react';
+import { ArrowRight, Check, ExternalLink, Key, Loader2,XCircle } from 'lucide-react';
 import { motion } from 'motion/react';
-import { verifyKey } from '../infrastructure/keyVerification';
+import React, { useState } from 'react';
 
 import { useConfigStore } from '../application/store/config-store';
+import { LLMConfig, LLMProvider } from '../core/types';
+import { verifyKey } from '../infrastructure/keyVerification';
 
 interface GatewayProps {
   onComplete: (config: LLMConfig) => void;

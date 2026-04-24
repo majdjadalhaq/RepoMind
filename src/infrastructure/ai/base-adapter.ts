@@ -1,5 +1,5 @@
-import { AIConfig, ChatMessage, StreamChunk, AIProviderAdapter } from '../../core/types/ai';
-import { AppError } from '../../core/lib/errors';
+import { AppError, ErrorCode } from '../../core/lib/errors';
+import { AIConfig, AIProviderAdapter, ChatMessage, StreamChunk } from '../../core/types/ai';
 
 export abstract class BaseAIAdapter<T = unknown> implements AIProviderAdapter {
   abstract streamResponse(config: AIConfig, messages: ChatMessage[]): AsyncGenerator<StreamChunk>;
@@ -45,11 +45,11 @@ export abstract class BaseAIAdapter<T = unknown> implements AIProviderAdapter {
     const errorBody = await response.json().catch(() => ({})) as Record<string, unknown>;
     const errorData = errorBody.error as Record<string, unknown> | undefined;
     const message = (errorData?.message as string) || (errorBody.message as string) || response.statusText;
-    
-    let code: import('../../core/lib/errors').ErrorCode = 'API_ERROR';
+
+    let code: ErrorCode = 'API_ERROR';
     if (response.status === 401 || response.status === 403) code = 'AUTH_FAILED';
     if (response.status === 429) code = 'RATE_LIMIT';
- 
-    throw new AppError(code, `${providerName} API error: ${message}`, errorBody);
+
+    throw new AppError(code, `${providerName} API error: ${message}`, errorBody, response.status);
   }
 }

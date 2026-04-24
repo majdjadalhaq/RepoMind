@@ -1,8 +1,8 @@
-import { fetchRepoStructure, fetchGithubFileContent } from '../../infrastructure/githubService';
-import { useRepoStore } from '../../application/store/repo-store';
 import { useChatStore } from '../../application/store/chat-store';
+import { useRepoStore } from '../../application/store/repo-store';
 import { useUIStore } from '../../application/store/ui-store';
 import { FileNode } from '../../core/types';
+import { fetchGithubFileContent,fetchRepoStructure } from '../../infrastructure/githubService';
 
 export const useGithubConnect = () => {
   const {

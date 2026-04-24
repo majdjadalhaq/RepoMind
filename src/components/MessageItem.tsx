@@ -1,7 +1,8 @@
-import React, { useState, memo } from 'react';
-import { ChatMessage } from '../core/types/ai';
+import React, { memo,useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+
+import { ChatMessage } from '../core/types/ai';
 
 interface MessageItemProps {
   message: ChatMessage;

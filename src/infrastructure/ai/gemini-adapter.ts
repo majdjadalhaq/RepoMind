@@ -1,4 +1,4 @@
-import { AIConfig, ChatMessage, StreamChunk, GeminiChunk } from '../../core/types/ai';
+import { AIConfig, ChatMessage, GeminiChunk,StreamChunk } from '../../core/types/ai';
 import { BaseAIAdapter } from './base-adapter';
 
 export class GeminiAdapter extends BaseAIAdapter<GeminiChunk> {

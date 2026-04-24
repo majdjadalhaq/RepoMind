@@ -1,7 +1,8 @@
-import { FileContext, FileNode } from "./types";
+import yaml from "js-yaml";
 import JSZip from "jszip";
 import * as XLSX from "xlsx";
-import yaml from "js-yaml";
+
+import { FileContext, FileNode } from "./types";
 // 5. PDF.js is loaded dynamically to avoid Node-specific dependencies like 'canvas' during build
 let pdfLib: unknown = null;
 const getPdfLib = async () => {

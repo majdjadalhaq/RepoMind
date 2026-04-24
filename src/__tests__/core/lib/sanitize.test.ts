@@ -1,4 +1,5 @@
-import { test, expect } from 'vitest';
+import { expect,test } from 'vitest';
+
 import { sanitizePrompt } from '../../../core/lib/sanitize';
 
 test('sanitizePrompt escapes thinking tags and markdown breakouts', () => {

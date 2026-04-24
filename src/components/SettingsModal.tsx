@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import type { LLMProvider } from '../core/types';
-import { Check, X, XCircle, ExternalLink, Loader2, Zap, Settings, Shield, Activity, Globe, Lock, Sun, Moon } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
-import { verifyKey } from '../infrastructure/keyVerification';
+import { Activity, Check, ExternalLink, Globe, Loader2, Lock, Moon,Settings, Shield, Sun, X, XCircle, Zap } from 'lucide-react';
+import { AnimatePresence,motion } from 'motion/react';
+import React, { useEffect,useState } from 'react';
 
+import { useChatStore } from '../application/store/chat-store';
 import { useConfigStore } from '../application/store/config-store';
 import { useUIStore } from '../application/store/ui-store';
-import { useChatStore } from '../application/store/chat-store';
+import type { LLMProvider } from '../core/types';
+import { verifyKey } from '../infrastructure/keyVerification';
 
 interface SettingsModalProps {
     onFullReset: () => void;

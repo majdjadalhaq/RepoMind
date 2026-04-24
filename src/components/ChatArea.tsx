@@ -1,10 +1,14 @@
-import React, { useEffect, useRef, useState, useMemo, memo } from 'react';
+import { ArrowRight, Check, ChevronDown, Copy, Download, Sparkles, User, X } from 'lucide-react';
+import { AnimatePresence,motion } from 'motion/react';
+import dynamic from 'next/dynamic';
+import React, { memo,useEffect, useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Message, AVAILABLE_MODELS, LLMModel, DiscoveredModel } from '../core/types';
-import { User, Check, Copy, Sparkles, ArrowRight, ChevronDown, Download, X } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
-import dynamic from 'next/dynamic';
+
+import { useChatStore } from '../application/store/chat-store';
+import { useConfigStore } from '../application/store/config-store';
+import { useUIStore } from '../application/store/ui-store';
+import { AVAILABLE_MODELS, DiscoveredModel,LLMModel, Message } from '../core/types';
 
 const MermaidRenderer = dynamic(
   () => import('./MermaidRenderer').then((mod) => mod.MermaidRenderer),
@@ -20,10 +24,6 @@ const MermaidRenderer = dynamic(
     )
   }
 );
-
-import { useChatStore } from '../application/store/chat-store';
-import { useUIStore } from '../application/store/ui-store';
-import { useConfigStore } from '../application/store/config-store';
 
 interface ChatAreaProps {
   onSuggestionClick: (text: string) => void;
