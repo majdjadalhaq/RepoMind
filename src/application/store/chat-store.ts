@@ -4,6 +4,7 @@ import { FileContext, Message, StoredConversation } from '../../core/types';
 
 interface ChatState {
   messages: Message[];
+  streamingMessage: Message | null;
   activeFiles: FileContext[];
   conversations: StoredConversation[];
   currentConversationId: string | null;
@@ -13,6 +14,9 @@ interface ChatState {
   setMessages: (messages: Message[]) => void;
   addMessage: (message: Message) => void;
   updateMessage: (id: string, updates: Partial<Message>) => void;
+  setStreamingMessage: (message: Message | null) => void;
+  updateStreamingMessage: (updates: Partial<Message>) => void;
+  finalizeStreamingMessage: () => void;
   setActiveFiles: (files: FileContext[]) => void;
   addActiveFile: (file: FileContext) => void;
   removeActiveFile: (id: string) => void;
@@ -28,6 +32,7 @@ interface ChatState {
 
 export const useChatStore = create<ChatState>((set, get) => ({
   messages: [],
+  streamingMessage: null,
   activeFiles: [],
   conversations: [],
   currentConversationId: null,
@@ -42,6 +47,20 @@ export const useChatStore = create<ChatState>((set, get) => ({
   updateMessage: (id, updates) => set((state) => ({
     messages: state.messages.map((m) => m.id === id ? { ...m, ...updates } : m)
   })),
+
+  setStreamingMessage: (streamingMessage) => set({ streamingMessage }),
+
+  updateStreamingMessage: (updates) => set((state) => ({
+    streamingMessage: state.streamingMessage ? { ...state.streamingMessage, ...updates } : null
+  })),
+
+  finalizeStreamingMessage: () => set((state) => {
+    if (!state.streamingMessage) return state;
+    return {
+      messages: [...state.messages, state.streamingMessage],
+      streamingMessage: null
+    };
+  }),
 
   setActiveFiles: (activeFiles) => set({ activeFiles }),
 
@@ -70,7 +89,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
       githubRepoLink: '',
       repoDetails: null,
       repoTree: [],
-      lastModified: Date.now()
+      lastModified: Date.now(),
+      totalUsage: { promptTokens: 0, completionTokens: 0, totalCost: 0 }
     };
     
     set((state) => ({
