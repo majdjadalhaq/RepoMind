@@ -169,8 +169,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       return (
                         <div
                           key={conv.id}
+                          role="button"
+                          tabIndex={0}
+                          aria-label={`Select conversation: ${conv.title || "New Conversation"}`}
+                          aria-selected={currentConversationId === conv.id}
                           onClick={() => onSelectConversation(conv.id)}
-                          className={`group cursor-pointer flex items-center justify-between p-3 rounded-xl transition-all border
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              onSelectConversation(conv.id);
+                            }
+                          }}
+                          className={`group cursor-pointer flex items-center justify-between p-3 rounded-xl transition-all border outline-none focus:ring-2 focus:ring-black dark:focus:ring-white
                               ${currentConversationId === conv.id
                               ? 'bg-black dark:bg-white text-white dark:text-black border-transparent shadow-lg transform scale-[1.02]'
                               : 'bg-white dark:bg-black border-gray-100 dark:border-zinc-800 hover:border-gray-300 dark:hover:border-zinc-700 text-gray-600 dark:text-gray-400'}
@@ -313,6 +323,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Footer */}
       <div className="px-6 pt-6 pb-24 md:px-8 md:py-8 shrink-0 space-y-2 bg-white dark:bg-black z-10 border-t border-gray-100 dark:border-white/5">
         <button
+          aria-label="Configure API Keys"
           onClick={onOpenSettings}
           className="w-full flex items-center justify-start gap-3 px-3 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest text-gray-500 hover:text-black dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 transition-all"
         >
@@ -321,6 +332,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </button>
 
         <button
+          aria-label={`Switch to ${isDark ? 'light' : 'dark'} mode`}
           onClick={toggleTheme}
           className="w-full flex items-center justify-start gap-3 px-3 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest text-gray-500 hover:text-black dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 transition-all"
         >

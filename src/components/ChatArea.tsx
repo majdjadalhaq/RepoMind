@@ -1,3 +1,4 @@
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { ArrowRight, Check, ChevronDown, Copy, Download, Sparkles, User, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import dynamic from 'next/dynamic';
@@ -69,6 +70,7 @@ const ThinkingSection = memo(({ text, thinkingTime }: { text: string, thinkingTi
       <div className="flex items-center gap-2 mb-2">
         <Sparkles className="w-4 h-4 text-blue-500 fill-blue-500/20" />
         <button
+          aria-label={isOpen ? "Hide thinking" : "Show thinking"}
           onClick={() => setIsOpen(!isOpen)}
           className="flex items-center gap-1.5 text-[13px] font-medium text-gray-500 hover:text-gray-900 dark:hover:text-white transition-all group"
         >
@@ -213,11 +215,8 @@ const MessageItem = memo(({ msg, supportsThinking, showThinking, isLoadingMessag
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: "easeOut" }}
-      className={`message-item group flex gap-3 md:gap-6 max-w-4xl mx-auto ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+    <div
+      className={`message-item group flex gap-3 md:gap-6 max-w-4xl mx-auto py-4 md:py-5 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
     >
       {msg.role === 'model' && (
         <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-black dark:bg-white flex items-center justify-center shrink-0 mt-1 md:mt-2 shadow-lg">
@@ -315,7 +314,7 @@ const MessageItem = memo(({ msg, supportsThinking, showThinking, isLoadingMessag
           <User className="w-5 h-5 text-gray-500" />
         </div>
       )}
-    </motion.div>
+    </div>
   );
 });
 
@@ -344,7 +343,6 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
     llmConfig.model.includes('o1')
   );
 
-  const scrollRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Combine static and dynamic track
@@ -357,14 +355,19 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
     return list;
   }, [messages, optimisticMessages, streamingMessage]);
 
-  const lastMessageText = allMessages[allMessages.length - 1]?.text || "";
-  const lastMessageThinking = allMessages[allMessages.length - 1]?.thinking || "";
+  const virtualizer = useVirtualizer({
+    count: allMessages.length,
+    getScrollElement: () => containerRef.current,
+    estimateSize: () => 120,
+    overscan: 5,
+  });
 
+  // Auto-scroll logic
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollIntoView({ behavior: 'smooth' });
+    if (allMessages.length > 0) {
+      virtualizer.scrollToIndex(allMessages.length - 1, { behavior: 'smooth' });
     }
-  }, [allMessages.length, lastMessageText.length, lastMessageThinking.length, isLoading]);
+  }, [allMessages.length, streamingMessage?.text?.length, streamingMessage?.thinking?.length]);
 
   const suggestions = [
     { label: "Find Bugs", prompt: "Analyze the attached code and identify any potential bugs or logic errors." },
@@ -374,7 +377,13 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
   ];
 
   return (
-    <div ref={containerRef} className="flex-1 overflow-y-auto px-4 md:px-12 py-6 md:py-8 space-y-8 md:space-y-10 custom-scrollbar scroll-smooth">
+    <div 
+      ref={containerRef} 
+      className="flex-1 overflow-y-auto px-4 md:px-12 py-6 md:py-8 custom-scrollbar scroll-smooth outline-none"
+      role="log"
+      aria-live="polite"
+      aria-label="Chat Conversation"
+    >
       {allMessages.length === 0 && (
         <div className="flex flex-col justify-start pt-4 md:justify-center md:pt-0 h-full min-h-[400px] max-w-3xl mx-auto">
           <div className="mb-8">
@@ -426,19 +435,37 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
         </div>
       )}
 
-      <AnimatePresence mode="popLayout">
-        {allMessages.map((msg, idx) => (
-          <MessageItem
-            key={msg.id}
-            msg={msg}
-            supportsThinking={supportsThinking}
-            showThinking={showThinking}
-            isLoadingMessage={isLoading && idx === allMessages.length - 1}
-          />
-        ))}
-      </AnimatePresence>
-
-      <div ref={scrollRef} className="h-4" />
+      {allMessages.length > 0 && (
+        <div
+          style={{
+            height: `${virtualizer.getTotalSize()}px`,
+            width: '100%',
+            position: 'relative',
+          }}
+        >
+          {virtualizer.getVirtualItems().map((virtualItem) => (
+            <div
+              key={virtualItem.key}
+              data-index={virtualItem.index}
+              ref={virtualizer.measureElement}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                transform: `translateY(${virtualItem.start}px)`,
+              }}
+            >
+              <MessageItem
+                msg={allMessages[virtualItem.index]}
+                supportsThinking={supportsThinking}
+                showThinking={showThinking}
+                isLoadingMessage={isLoading && virtualItem.index === allMessages.length - 1}
+              />
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

@@ -118,6 +118,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
               <button
                 aria-label="Toggle Web Search"
+                aria-pressed={isSearchEnabled}
                 onClick={toggleSearch}
                 className={`p-2.5 md:p-2 rounded-xl transition-all active:scale-95 ${isSearchEnabled
                   ? 'bg-blue-50 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400'
@@ -142,6 +143,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
               {supportsVisuals && (
                 <button
                   aria-label="Toggle Design Mode"
+                  aria-pressed={isDesignMode}
                   onClick={() => setIsDesignMode(!isDesignMode)}
                   className={`p-2.5 md:p-2 rounded-xl transition-all active:scale-95 ${isDesignMode
                     ? 'bg-purple-50 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400'
@@ -160,6 +162,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                 <div className="flex items-center gap-1 p-1 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/5">
                   <div className="flex items-center gap-1">
                     <button
+                      aria-label="Concise Mode"
+                      aria-pressed={thinkingMode === 'concise'}
                       onClick={() => setThinkingMode('concise')}
                       className={`flex items-center gap-1.5 px-2 md:px-3 py-1.5 rounded-lg transition-all active:scale-95 ${thinkingMode === 'concise'
                         ? 'bg-white dark:bg-zinc-700 text-black dark:text-white shadow-sm ring-1 ring-black/5'
@@ -172,6 +176,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                     </button>
 
                     <button
+                      aria-label="Deep Thinking Mode"
+                      aria-pressed={thinkingMode === 'deep'}
                       onClick={() => setThinkingMode('deep')}
                       className={`flex items-center gap-1.5 px-2 md:px-3 py-1.5 rounded-lg transition-all active:scale-95 ${thinkingMode === 'deep'
                         ? 'bg-white dark:bg-zinc-700 text-black dark:text-white shadow-sm ring-1 ring-black/5'
