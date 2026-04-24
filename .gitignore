@@ -41,6 +41,7 @@ lerna-debug.log*
 .cursor/
 .worktrees/
 docs/
+!docs/superpowers/
 metadata.json
 
 # Editor directories and files
