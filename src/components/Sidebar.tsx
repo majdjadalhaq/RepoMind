@@ -90,6 +90,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="px-8 mb-6 shrink-0">
           <div className="flex border-b border-gray-100 dark:border-white/10 gap-6">
             <button
+              role="tab"
+              aria-selected={activeTab === 'history'}
+              aria-controls="history-panel"
               onClick={() => setActiveTab('history')}
               className={`pb-2 text-sm font-medium transition-colors ${activeTab === 'history'
                 ? 'text-black dark:text-white border-b-2 border-black dark:border-white'
@@ -99,6 +102,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
               Chats
             </button>
             <button
+              role="tab"
+              aria-selected={activeTab === 'context'}
+              aria-controls="context-panel"
               onClick={() => setActiveTab('context')}
               className={`pb-2 text-sm font-medium transition-colors ${activeTab === 'context'
                 ? 'text-black dark:text-white border-b-2 border-black dark:border-white'

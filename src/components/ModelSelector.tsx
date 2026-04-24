@@ -37,6 +37,9 @@ export const ModelSelector: React.FC<ModelSelectorProps> = () => {
   return (
     <div className="relative" ref={dropdownRef}>
       <button
+        aria-label={`Current model: ${AVAILABLE_MODELS[config.provider]?.find(m => m.id === config.model)?.name || config.model}. Click to change model.`}
+        aria-expanded={isOpen}
+        aria-haspopup="listbox"
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 transition-colors group"
       >
