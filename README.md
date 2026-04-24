@@ -38,17 +38,27 @@
   <h3>Neural Hub (Desktop)</h3>
   <img src="public/docs/screenshots/dashboard_dark.png" width="800" alt="Neural Hub Desktop" />
   <br/><br/>
+  
   <table>
     <tr>
-      <td align="center"><b>Mobile Dashboard</b></td>
-      <td align="center"><b>Mobile Sidebar</b></td>
+      <td align="center"><b>Mobile Dashboard (Dark)</b></td>
+      <td align="center"><b>Mobile Dashboard (Light)</b></td>
     </tr>
     <tr>
-      <td><img src="public/docs/screenshots/mobile_dark.png" width="400" alt="Mobile Dashboard" /></td>
-      <td><img src="public/docs/screenshots/mobile_sidebar.png" width="400" alt="Mobile Sidebar" /></td>
+      <td><img src="public/docs/screenshots/mobile_dark.png" width="400" alt="Mobile Dashboard Dark" /></td>
+      <td><img src="public/docs/screenshots/mobile_light.png" width="400" alt="Mobile Dashboard Light" /></td>
+    </tr>
+    <tr>
+      <td align="center"><b>Mobile Sidebar (Dark)</b></td>
+      <td align="center"><b>Mobile Sidebar (Light)</b></td>
+    </tr>
+    <tr>
+      <td><img src="public/docs/screenshots/mobile_sidebar_dark.png" width="400" alt="Mobile Sidebar Dark" /></td>
+      <td><img src="public/docs/screenshots/mobile_sidebar_light.png" width="400" alt="Mobile Sidebar Light" /></td>
     </tr>
   </table>
   <br/>
+  
   <table>
     <tr>
       <td align="center"><b>Usage Insights (Dark)</b></td>
@@ -58,9 +68,6 @@
       <td><img src="public/docs/screenshots/usage_insights_dark.png" width="400" alt="Usage Insights Dark" /></td>
       <td><img src="public/docs/screenshots/usage_insights_light.png" width="400" alt="Usage Insights Light" /></td>
     </tr>
-  </table>
-  <br/>
-  <table>
     <tr>
       <td align="center"><b>API & Security (Dark)</b></td>
       <td align="center"><b>API & Security (Light)</b></td>
