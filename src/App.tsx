@@ -10,6 +10,7 @@ import { ChatArea } from './components/ChatArea';
 import { ChatInput } from './components/ChatInput';
 import { Gateway } from './components/Gateway';
 import { ModelSelector } from './components/ModelSelector';
+import { MobileSidebar } from './components/MobileSidebar';
 import { QuotaErrorOverlay } from './components/QuotaErrorOverlay';
 import { RepoModal } from './components/RepoModal';
 import { SettingsModal } from './components/SettingsModal';
@@ -129,7 +130,7 @@ const App: React.FC = () => {
       <main className="flex-1 flex flex-col relative min-w-0 bg-white dark:bg-black">
 
         {/* Minimal Header */}
-        <header className="h-20 flex items-center justify-between px-6 md:px-10 shrink-0 relative z-30">
+        <header className="h-16 md:h-20 flex items-center justify-between px-4 md:px-10 shrink-0 relative z-30 border-b border-gray-100 dark:border-white/5 md:border-none">
           <div className="flex items-center gap-4">
             <button aria-label="Toggle mobile menu" onClick={toggleMobileMenu} className="md:hidden text-black dark:text-white p-2 -ml-2">
               <Menu className="w-6 h-6" />
@@ -178,42 +179,11 @@ const App: React.FC = () => {
       </main>
 
       {/* Mobile Sidebar Overlay */}
-      <AnimatePresence>
-        {isMobileMenuOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:hidden"
-              onClick={toggleMobileMenu}
-            />
-            <motion.div
-              initial={{ x: "-100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "-100%" }}
-              transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="fixed inset-y-0 left-0 z-50 w-4/5 max-w-[320px] bg-white dark:bg-black h-full shadow-2xl md:hidden border-r border-gray-100 dark:border-white/10"
-            >
-              <button aria-label="Close mobile menu" onClick={toggleMobileMenu} className="absolute top-4 right-4 p-2 text-gray-400 hover:text-black dark:hover:text-white transition-colors z-[60]">
-                <X className="w-6 h-6 pointer-events-none" />
-              </button>
-
-              {/* Mobile Model Selector */}
-              <div className="px-8 pt-6 pb-2">
-                <ModelSelector />
-              </div>
-
-              <Sidebar
-                className="h-full border-none"
-                onAddFiles={handleFileChange}
-                onRepoFileClick={handleRepoFileClick}
-                onSelectAllFiles={handleSelectAllFiles}
-              />
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+      <MobileSidebar
+        onAddFiles={handleFileChange}
+        onRepoFileClick={handleRepoFileClick}
+        onSelectAllFiles={handleSelectAllFiles}
+      />
     </div>
   );
 };

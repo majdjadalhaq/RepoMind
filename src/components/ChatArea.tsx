@@ -378,7 +378,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
   ];
 
   return (
-    <div ref={containerRef} className="flex-1 overflow-y-auto px-6 md:px-12 py-8 space-y-10 custom-scrollbar scroll-smooth">
+    <div ref={containerRef} className="flex-1 overflow-y-auto px-4 md:px-12 py-6 md:py-8 space-y-8 md:space-y-10 custom-scrollbar scroll-smooth">
       {messages.length === 0 && (
         <div className="flex flex-col justify-start pt-4 md:justify-center md:pt-0 h-full min-h-[400px] max-w-3xl mx-auto">
           <div className="mb-8">
@@ -409,7 +409,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
             </motion.p>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 md:gap-4 w-full">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 w-full">
             {suggestions.map((s, idx) => (
               <motion.button
                 key={idx}
