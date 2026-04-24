@@ -110,8 +110,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           <div className="flex items-center justify-between px-3 py-2">
 
             {/* Left Actions */}
-            <div className="flex items-center gap-1">
-              <label aria-label="Attach files" className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 text-gray-400 hover:text-black dark:hover:text-white cursor-pointer transition-all active:scale-95">
+            <div className="flex items-center gap-0.5 md:gap-1">
+              <label aria-label="Attach files" className="p-2.5 md:p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 text-gray-400 hover:text-black dark:hover:text-white cursor-pointer transition-all active:scale-95">
                 <Paperclip className="w-5 h-5" />
                 <input type="file" multiple className="hidden" onChange={handleFileChange} />
               </label>
@@ -119,7 +119,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
               <button
                 aria-label="Toggle Web Search"
                 onClick={toggleSearch}
-                className={`p-2 rounded-xl transition-all active:scale-95 ${isSearchEnabled
+                className={`p-2.5 md:p-2 rounded-xl transition-all active:scale-95 ${isSearchEnabled
                   ? 'bg-blue-50 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400'
                   : 'hover:bg-gray-100 dark:hover:bg-white/5 text-gray-400 hover:text-black dark:hover:text-white'
                   }`}
@@ -132,7 +132,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                 <button
                   aria-label="Attach All Repository Files"
                   onClick={onSelectAllFiles}
-                  className="p-2 rounded-xl transition-all active:scale-95 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-400 hover:text-black dark:hover:text-white"
+                  className="p-2.5 md:p-2 rounded-xl transition-all active:scale-95 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-400 hover:text-black dark:hover:text-white"
                   title="Attach All Repository Files"
                 >
                   <CheckSquare className="w-5 h-5" />
@@ -143,7 +143,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                 <button
                   aria-label="Toggle Design Mode"
                   onClick={() => setIsDesignMode(!isDesignMode)}
-                  className={`p-2 rounded-xl transition-all active:scale-95 ${isDesignMode
+                  className={`p-2.5 md:p-2 rounded-xl transition-all active:scale-95 ${isDesignMode
                     ? 'bg-purple-50 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400'
                     : 'hover:bg-gray-100 dark:hover:bg-white/5 text-gray-400 hover:text-black dark:hover:text-white'
                     }`}
@@ -191,7 +191,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                 onClick={isLoading ? onStopResponse : handleSendMessage}
                 disabled={!isLoading && (!input.trim() && activeFiles.length === 0)}
                 className={`
-                  flex items-center justify-center w-10 h-10 rounded-xl transition-all shadow-sm
+                  flex items-center justify-center w-11 h-11 md:w-12 md:h-12 rounded-xl transition-all shadow-sm
                   ${!isLoading && (!input.trim() && activeFiles.length === 0)
                     ? 'bg-gray-100 dark:bg-white/10 text-gray-400 dark:text-gray-500 cursor-not-allowed'
                     : isLoading
