@@ -1,5 +1,7 @@
 import { GoogleGenAI } from "@google/genai";
-import type { FileNode, FileContext, Message, LLMConfig, ThinkingMode } from "../core/types";
+
+import { AppError } from "../core/lib/errors";
+import type { FileContext, FileNode, LLMConfig, Message, ThinkingMode } from "../core/types";
 import { estimateTokens } from "../core/utils";
 
 export interface StreamUpdate {
@@ -388,8 +390,9 @@ export async function* streamLLMResponse(
       });
 
       if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.error?.message || `${provider} Error: ${response.statusText}`);
+        const errData = await response.json().catch(() => ({})) as Record<string, unknown>;
+        const errMsg = (errData.error as Record<string, unknown>)?.message as string | undefined;
+        throw new AppError('API_ERROR', errMsg || `${provider} Error: ${response.statusText}`, errData, response.status);
       }
 
       const reader = response.body!.getReader();
@@ -436,7 +439,7 @@ export async function* streamLLMResponse(
           done: true
         };
       } else {
-        throw new Error("No response generated. The model may be overloaded or the request timed out.");
+        throw new AppError('API_ERROR', 'No response generated. The model may be overloaded or the request timed out.');
       }
     }
 
@@ -462,8 +465,9 @@ export async function* streamLLMResponse(
       });
 
       if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.error?.message || `Anthropic Error: ${response.statusText}`);
+        const errData = await response.json().catch(() => ({})) as Record<string, unknown>;
+        const errMsg = (errData.error as Record<string, unknown>)?.message as string | undefined;
+        throw new AppError('API_ERROR', errMsg || `Anthropic Error: ${response.statusText}`, errData, response.status);
       }
 
       const reader = response.body!.getReader();

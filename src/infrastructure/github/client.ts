@@ -1,4 +1,5 @@
-import { Repository, FileNode } from '../../core/types/repo';
+import { FileNode, Repository } from '../../core/types/repo';
+import { AppError } from '../../core/lib/errors';
 
 export class GithubClient {
   private static BASE_URL = 'https://api.github.com';
@@ -6,19 +7,25 @@ export class GithubClient {
   async fetchRepository(owner: string, repo: string, branch: string = 'main'): Promise<Repository> {
     const url = `${GithubClient.BASE_URL}/repos/${owner}/${repo}`;
     const response = await fetch(url);
-    
+
     if (!response.ok) {
-      throw new Error(`Failed to fetch repository: ${response.statusText}`);
+      if (response.status === 404) {
+        throw new AppError('GITHUB_REPO_NOT_FOUND', `Repository ${owner}/${repo} not found`, undefined, 404);
+      }
+      if (response.status === 403 || response.status === 429) {
+        throw new AppError('GITHUB_RATE_LIMIT', 'GitHub API rate limit exceeded', undefined, response.status);
+      }
+      throw new AppError('API_ERROR', `Failed to fetch repository: ${response.statusText}`, undefined, response.status);
     }
 
     const data = await response.json();
-    
+
     return {
       id: String(data.id),
       name: data.name,
       owner: data.owner.login,
       url: data.html_url,
-      branch: branch,
+      branch,
       lastSyncedAt: Date.now()
     };
   }
@@ -26,9 +33,12 @@ export class GithubClient {
   async fetchTree(owner: string, repo: string, sha: string = 'main'): Promise<FileNode[]> {
     const url = `${GithubClient.BASE_URL}/repos/${owner}/${repo}/git/trees/${sha}?recursive=1`;
     const response = await fetch(url);
-    
+
     if (!response.ok) {
-      throw new Error(`Failed to fetch repository tree: ${response.statusText}`);
+      if (response.status === 404) {
+        throw new AppError('GITHUB_REF_NOT_FOUND', `Branch or SHA not found: ${sha}`, undefined, 404);
+      }
+      throw new AppError('API_ERROR', `Failed to fetch repository tree: ${response.statusText}`, undefined, response.status);
     }
 
     const data = await response.json();
@@ -40,9 +50,12 @@ export class GithubClient {
     const response = await fetch(url, {
       headers: { 'Accept': 'application/vnd.github.v3.raw' }
     });
-    
+
     if (!response.ok) {
-      throw new Error(`Failed to fetch file content: ${response.statusText}`);
+      if (response.status === 404) {
+        throw new AppError('GITHUB_FILE_NOT_FOUND', `File not found at path: ${path}`, undefined, 404);
+      }
+      throw new AppError('API_ERROR', `Failed to fetch file content: ${response.statusText}`, undefined, response.status);
     }
 
     return response.text();
@@ -56,7 +69,7 @@ export class GithubClient {
       const parts = node.path.split('/');
       const name = parts.pop() || '';
       const parentPath = parts.join('/');
-      
+
       const fileNode: FileNode = {
         name,
         path: node.path,
@@ -85,7 +98,7 @@ export class GithubClient {
 
   parseUrl(url: string): { owner: string; repo: string } {
     const match = url.match(/github\.com\/([^/]+)\/([^/]+)/);
-    if (!match) throw new Error('Invalid GitHub URL');
+    if (!match) throw new AppError('INTERNAL_ERROR', `Invalid GitHub URL: ${url}`);
     return { owner: match[1], repo: match[2].replace(/\.git$/, '') };
   }
 }

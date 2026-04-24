@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+
 import { ThinkingMode } from '../../core/types';
 
 interface UIState {

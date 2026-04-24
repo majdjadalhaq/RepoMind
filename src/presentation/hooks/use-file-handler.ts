@@ -1,6 +1,6 @@
 import { useChatStore } from '../../application/store/chat-store';
-import { readFile } from '../../core/utils';
 import { FileContext } from '../../core/types';
+import { readFile } from '../../core/utils';
 
 export const useFileHandler = () => {
   const { activeFiles, setActiveFiles } = useChatStore();

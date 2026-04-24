@@ -1,9 +1,10 @@
-import React, { useRef, useEffect } from 'react';
-import { MessageItem } from './MessageItem';
+import React, { useEffect,useRef } from 'react';
+
 import { Conversation } from '../core/types/chat';
 import { Repository } from '../core/types/repo';
-import { Button } from './ui/Button';
 import { useChatOrchestration } from '../presentation/hooks/use-chat-orchestration';
+import { MessageItem } from './MessageItem';
+import { Button } from './ui/Button';
 
 interface ChatWindowProps {
   activeConversation?: Conversation;

@@ -1,6 +1,7 @@
+import { CheckCircle,ChevronDown, ChevronRight, FileCode, Folder, FolderOpen } from 'lucide-react';
 import React, { useState } from 'react';
-import { FileNode, FileContext } from '../core/types';
-import { Folder, FolderOpen, FileCode, ChevronRight, ChevronDown, CheckCircle } from 'lucide-react';
+
+import { FileContext,FileNode } from '../core/types';
 
 interface FileExplorerProps {
   nodes: FileNode[];

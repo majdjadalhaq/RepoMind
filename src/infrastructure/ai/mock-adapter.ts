@@ -1,4 +1,4 @@
-import { AIConfig, ChatMessage, StreamChunk, AIProviderAdapter } from '../../core/types/ai';
+import { AIConfig, AIProviderAdapter,ChatMessage, StreamChunk } from '../../core/types/ai';
 
 export class MockAdapter implements AIProviderAdapter {
   async *streamResponse(_config: AIConfig, messages: ChatMessage[]): AsyncGenerator<StreamChunk> {

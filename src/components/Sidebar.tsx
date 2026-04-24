@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
-import { Trash2, FileCode, FileImage, Plus, Sun, Moon, Settings, MessageSquare, Clock, PlusCircle, CheckSquare, BarChart3 } from 'lucide-react';
-import { FileExplorer } from './FileExplorer';
+import { BarChart3,CheckSquare, Clock, FileCode, FileImage, MessageSquare, Moon, Plus, PlusCircle, Settings, Sun, Trash2 } from 'lucide-react';
 import { motion } from 'motion/react';
+import React, { useState } from 'react';
 
-import { useUIStore } from '../application/store/ui-store';
-import { useRepoStore } from '../application/store/repo-store';
 import { useChatStore } from '../application/store/chat-store';
+import { useRepoStore } from '../application/store/repo-store';
+import { useUIStore } from '../application/store/ui-store';
+import { FileExplorer } from './FileExplorer';
 
 interface SidebarProps {
   className?: string;

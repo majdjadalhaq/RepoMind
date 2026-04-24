@@ -4,8 +4,8 @@ import tsParser from "@typescript-eslint/parser";
 
 export default [
   {
-    // Ignore build artifacts and tooling directories.
-    ignores: [".next/", "node_modules/", "*.js"]
+    // Ignore build artifacts and generated tooling files only.
+    ignores: ['.next/', 'node_modules/', '*.config.js', '*.config.mjs', 'empty-module.js']
   },
   {
     files: ["**/*.ts", "**/*.tsx"],

@@ -1,0 +1,36 @@
+
+> repomind@0.0.0 lint
+> eslint . --max-warnings 0
+
+
+/Users/majdjadalhaq/Desktop/Projects/RepoMind/src/components/ChatArea.tsx
+  145:181  warning  Arrow function has a complexity of 19. Maximum allowed is 15  complexity
+  341:4    warning  Arrow function has a complexity of 23. Maximum allowed is 15  complexity
+  343:1    error    File has too many lines (408). Maximum allowed is 300         max-lines
+
+/Users/majdjadalhaq/Desktop/Projects/RepoMind/src/components/ChatInput.tsx
+  22:4  warning  Arrow function has a complexity of 34. Maximum allowed is 15  complexity
+
+/Users/majdjadalhaq/Desktop/Projects/RepoMind/src/components/Gateway.tsx
+   51:32   warning  Async arrow function has a complexity of 18. Maximum allowed is 15  complexity
+  174:100  warning  Arrow function has a complexity of 16. Maximum allowed is 15        complexity
+
+/Users/majdjadalhaq/Desktop/Projects/RepoMind/src/components/SettingsModal.tsx
+   25:4  warning  Arrow function has a complexity of 20. Maximum allowed is 15  complexity
+  325:1  error    File has too many lines (517). Maximum allowed is 300         max-lines
+
+/Users/majdjadalhaq/Desktop/Projects/RepoMind/src/components/Sidebar.tsx
+  326:1  error  File has too many lines (308). Maximum allowed is 300  max-lines
+
+/Users/majdjadalhaq/Desktop/Projects/RepoMind/src/infrastructure/llmFactory.ts
+   41:8  warning  Async generator function 'streamLLMResponse' has a complexity of 106. Maximum allowed is 15  complexity
+  366:1  error    File has too many lines (455). Maximum allowed is 300                                        max-lines
+
+/Users/majdjadalhaq/Desktop/Projects/RepoMind/src/presentation/hooks/use-initialization.ts
+  17:30  warning  Async arrow function has a complexity of 24. Maximum allowed is 15  complexity
+
+/Users/majdjadalhaq/Desktop/Projects/RepoMind/src/presentation/hooks/use-send-message.ts
+  61:72  warning  Async arrow function has a complexity of 23. Maximum allowed is 15  complexity
+
+✖ 13 problems (4 errors, 9 warnings)
+

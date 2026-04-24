@@ -1,10 +1,11 @@
+import { ArrowRight, Box, XCircle, Zap } from 'lucide-react';
+import { AnimatePresence,motion } from 'motion/react';
 import React from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { XCircle, Box, ArrowRight, Zap } from 'lucide-react';
-import { useUIStore } from '../application/store/ui-store';
+
 import { useChatStore } from '../application/store/chat-store';
 import { useConfigStore } from '../application/store/config-store';
-import { AVAILABLE_MODELS, LLMModel, Message, LLMConfig } from '../core/types';
+import { useUIStore } from '../application/store/ui-store';
+import { AVAILABLE_MODELS, LLMConfig,LLMModel, Message } from '../core/types';
 
 interface QuotaErrorOverlayProps {
   sendMessage: (text: string, configOverride?: LLMConfig) => void;

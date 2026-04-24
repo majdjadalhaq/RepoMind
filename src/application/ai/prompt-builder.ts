@@ -1,6 +1,6 @@
+import { sanitizePrompt } from '../../core/lib/sanitize';
 import { ChatMessage } from '../../core/types/ai';
 import { Repository } from '../../core/types/repo';
-import { sanitizePrompt } from '../../core/lib/sanitize';
 
 export class PromptBuilder {
   static buildSystemPrompt(repo?: Repository, selectedFiles: { path: string; content: string }[] = []): string {

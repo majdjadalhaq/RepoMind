@@ -1,23 +1,24 @@
+import { Box,Loader2, Menu, X } from 'lucide-react';
+import { AnimatePresence,motion } from 'motion/react';
 import React, { useEffect, useState } from 'react';
-import { Sidebar } from './components/Sidebar';
-import { ChatArea } from './components/ChatArea';
-import { RepoModal } from './components/RepoModal';
-import { ModelSelector } from './components/ModelSelector';
-import { Gateway } from './components/Gateway';
-import { SettingsModal } from './components/SettingsModal';
-import { useUIStore } from './application/store/ui-store';
-import { useRepoStore } from './application/store/repo-store';
-import { useConfigStore } from './application/store/config-store';
+
 import { useChatStore } from './application/store/chat-store';
+import { useConfigStore } from './application/store/config-store';
+import { useRepoStore } from './application/store/repo-store';
+import { useUIStore } from './application/store/ui-store';
+import { ChatArea } from './components/ChatArea';
+import { ChatInput } from './components/ChatInput';
+import { Gateway } from './components/Gateway';
+import { ModelSelector } from './components/ModelSelector';
+import { QuotaErrorOverlay } from './components/QuotaErrorOverlay';
+import { RepoModal } from './components/RepoModal';
+import { SettingsModal } from './components/SettingsModal';
+import { Sidebar } from './components/Sidebar';
 import type { LLMConfig } from './core/types';
+import { useFileHandler } from './presentation/hooks/use-file-handler';
+import { useGithubConnect } from './presentation/hooks/use-github-connect';
 import { useInitialization } from './presentation/hooks/use-initialization';
 import { useSendMessage } from './presentation/hooks/use-send-message';
-import { useGithubConnect } from './presentation/hooks/use-github-connect';
-import { useFileHandler } from './presentation/hooks/use-file-handler';
-import { QuotaErrorOverlay } from './components/QuotaErrorOverlay';
-import { ChatInput } from './components/ChatInput';
-import { Menu, X, Loader2, Box } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
 
 const App: React.FC = () => {
   const [mounted, setMounted] = useState(false);

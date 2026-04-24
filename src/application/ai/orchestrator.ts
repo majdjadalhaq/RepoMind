@@ -1,9 +1,10 @@
-import { LLMProvider, AIConfig, ChatMessage, StreamChunk, AIProviderAdapter } from '../../core/types/ai';
-import { OpenAIAdapter } from '../../infrastructure/ai/openai-adapter';
+import { AppError } from '../../core/lib/errors';
+import { AIConfig, AIProviderAdapter, ChatMessage, LLMProvider, StreamChunk } from '../../core/types/ai';
 import { AnthropicAdapter } from '../../infrastructure/ai/anthropic-adapter';
 import { GeminiAdapter } from '../../infrastructure/ai/gemini-adapter';
-import { OpenAICompatibleAdapter } from '../../infrastructure/ai/openai-compatible-adapter';
 import { MockAdapter } from '../../infrastructure/ai/mock-adapter';
+import { OpenAIAdapter } from '../../infrastructure/ai/openai-adapter';
+import { OpenAICompatibleAdapter } from '../../infrastructure/ai/openai-compatible-adapter';
 
 export class AIOrchestrator {
   private adapters: Map<LLMProvider, AIProviderAdapter> = new Map();
@@ -32,7 +33,7 @@ export class AIOrchestrator {
   ): AsyncGenerator<StreamChunk> {
     const adapter = this.adapters.get(provider);
     if (!adapter) {
-      throw new Error(`AI Provider ${provider} is not registered`);
+      throw new AppError('INTERNAL_ERROR', `AI provider "${provider}" is not registered`);
     }
     yield* adapter.streamResponse(config, messages);
   }

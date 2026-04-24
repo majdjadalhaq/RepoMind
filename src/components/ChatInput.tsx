@@ -1,12 +1,12 @@
+import { ArrowUp, BrainCircuit, CheckSquare,Globe, Layers, Paperclip, X, Zap } from 'lucide-react';
+import { AnimatePresence,motion } from 'motion/react';
 import React, { useState } from 'react';
-import { Paperclip, X, ArrowUp, Globe, Layers, Zap, BrainCircuit, CheckSquare } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
-import { useUIStore } from '../application/store/ui-store';
-import { useRepoStore } from '../application/store/repo-store';
-import { useConfigStore } from '../application/store/config-store';
+
 import { useChatStore } from '../application/store/chat-store';
-import { LLMModel } from '../core/types';
-import { AVAILABLE_MODELS } from '../core/types';
+import { useConfigStore } from '../application/store/config-store';
+import { useRepoStore } from '../application/store/repo-store';
+import { useUIStore } from '../application/store/ui-store';
+import { AVAILABLE_MODELS,LLMModel  } from '../core/types';
 import { useFileHandler } from '../presentation/hooks/use-file-handler';
 
 interface ChatInputProps {

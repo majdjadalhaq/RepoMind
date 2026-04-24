@@ -1,6 +1,7 @@
-import type { Metadata } from "next";
-import { Outfit, Space_Grotesk, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+
+import type { Metadata } from "next";
+import { JetBrains_Mono,Outfit, Space_Grotesk } from "next/font/google";
 
 const fontOutfit = Outfit({
     subsets: ['latin'],

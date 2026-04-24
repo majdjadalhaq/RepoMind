@@ -1,13 +1,14 @@
-import { test, expect, describe } from 'vitest';
+import { describe,expect, test } from 'vitest';
+
 import { aiOrchestrator } from '../../../application/ai/orchestrator';
-import { LLMProvider, AIConfig } from '../../../core/types/ai';
+import { AIConfig,LLMProvider } from '../../../core/types/ai';
 
 describe('AIOrchestrator', () => {
   test('throws error for unregistered provider', async () => {
     const provider = 'invalid-provider' as LLMProvider;
     const config = {} as AIConfig;
     const generator = aiOrchestrator.streamResponse(provider, config, []);
-    await expect(generator.next()).rejects.toThrow('AI Provider invalid-provider is not registered');
+    await expect(generator.next()).rejects.toThrow('AI provider "invalid-provider" is not registered');
   });
 
   test('orchestrates known providers', async () => {

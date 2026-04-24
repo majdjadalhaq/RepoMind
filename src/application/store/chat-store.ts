@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { Message, FileContext, StoredConversation } from '../../core/types';
+
+import { FileContext, Message, StoredConversation } from '../../core/types';
 
 interface ChatState {
   messages: Message[];

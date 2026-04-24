@@ -45,6 +45,8 @@
     "@vitejs/plugin-react": "^5.0.0",
     "autoprefixer": "^10.4.23",
     "eslint": "^10.2.1",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-simple-import-sort": "^13.0.0",
     "fake-indexeddb": "^6.2.5",
     "jsdom": "^29.0.2",
     "postcss": "^8.5.6",

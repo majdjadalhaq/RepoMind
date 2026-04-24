@@ -1,9 +1,9 @@
-import React, { useState, useRef } from 'react';
-import { AVAILABLE_MODELS, MODEL_PRICING, LLMProvider, LLMModel } from '../core/types';
-import { Check, ChevronDown, Cpu, Zap, AlertTriangle } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { AlertTriangle,Check, ChevronDown, Cpu, Zap } from 'lucide-react';
+import { AnimatePresence,motion } from 'motion/react';
+import React, { useRef,useState } from 'react';
 
 import { useConfigStore } from '../application/store/config-store';
+import { AVAILABLE_MODELS, LLMModel,LLMProvider, MODEL_PRICING } from '../core/types';
 
 interface ModelSelectorProps {
 }

@@ -1,4 +1,4 @@
-import { AIConfig, ChatMessage, StreamChunk, AnthropicChunk } from '../../core/types/ai';
+import { AIConfig, AnthropicChunk,ChatMessage, StreamChunk } from '../../core/types/ai';
 import { BaseAIAdapter } from './base-adapter';
 
 export class AnthropicAdapter extends BaseAIAdapter<AnthropicChunk> {
