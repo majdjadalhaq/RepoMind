@@ -1,4 +1,4 @@
-import { Activity, Check, ExternalLink, Globe, Loader2, Lock, Moon,Settings, Shield, Sun, X, XCircle, Zap } from 'lucide-react';
+import { Activity, Check, Download, ExternalLink, Globe, Loader2, Lock, Moon,Settings, Shield, Sun, X, XCircle, Zap } from 'lucide-react';
 import { AnimatePresence,motion } from 'motion/react';
 import React, { useEffect,useState } from 'react';
 
@@ -42,6 +42,25 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             setValidationErrors({});
         }
     }, [isOpen, config.apiKeys]);
+
+    const handleExportData = () => {
+        const data = {
+            conversations,
+            usage: {
+                totalUsage,
+                modelUsage
+            },
+            exportDate: new Date().toISOString(),
+            version: '1.0.0'
+        };
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `repomind-backup-${new Date().toISOString().split('T')[0]}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
 
     const handleSave = async () => {
         setIsVerifying(true);
@@ -258,6 +277,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                                                             ? `${(totalUsage.completionTokens / 1000000).toFixed(2)}M`
                                                             : `${(totalUsage.completionTokens / 1000).toFixed(1)}k`}
                                                     </div>
+                                                </div>
+                                                <div className="p-6 bg-black/[0.02] dark:bg-white/[0.03] rounded-3xl border border-black/5 dark:border-white/5 flex flex-col justify-between">
+                                                    <div className="text-[10px] font-black text-black/30 dark:text-white/30 uppercase tracking-[0.2em] mb-2">Data Governance</div>
+                                                    <button
+                                                        onClick={handleExportData}
+                                                        className="w-full flex items-center justify-center gap-2 py-3 bg-blue-500/10 hover:bg-blue-500/20 text-blue-500 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all"
+                                                    >
+                                                        <Download className="w-3.5 h-3.5" />
+                                                        Export Archive
+                                                    </button>
                                                 </div>
                                             </div>
 
