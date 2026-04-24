@@ -20,9 +20,11 @@ import { useFileHandler } from './presentation/hooks/use-file-handler';
 import { useGithubConnect } from './presentation/hooks/use-github-connect';
 import { useInitialization } from './presentation/hooks/use-initialization';
 import { useSendMessage } from './presentation/hooks/use-send-message';
+import { useTheme } from './presentation/hooks/use-theme';
 
 const App: React.FC = () => {
   const [mounted, setMounted] = useState(false);
+  useTheme(); // Initialize theme orchestration
 
   useEffect(() => {
     setMounted(true);
