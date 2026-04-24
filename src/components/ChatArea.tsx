@@ -1,14 +1,14 @@
 import { ArrowRight, Check, ChevronDown, Copy, Download, Sparkles, User, X } from 'lucide-react';
-import { AnimatePresence,motion } from 'motion/react';
+import { AnimatePresence, motion } from 'motion/react';
 import dynamic from 'next/dynamic';
-import React, { memo,useEffect, useMemo, useRef, useState } from 'react';
+import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 import { useChatStore } from '../application/store/chat-store';
 import { useConfigStore } from '../application/store/config-store';
 import { useUIStore } from '../application/store/ui-store';
-import { AVAILABLE_MODELS, DiscoveredModel,LLMModel, Message } from '../core/types';
+import { AVAILABLE_MODELS, DiscoveredModel, LLMModel, Message } from '../core/types';
 
 const MermaidRenderer = dynamic(
   () => import('./MermaidRenderer').then((mod) => mod.MermaidRenderer),
@@ -27,12 +27,10 @@ const MermaidRenderer = dynamic(
 
 interface ChatAreaProps {
   onSuggestionClick: (text: string) => void;
+  optimisticMessages?: Message[];
 }
 
-// ... CodeBlock, ThinkingSection, LiveTimer, MessageItem stay the same (but update MessageItem props if needed) ...
-
-
-// --- Components ---
+// --- Sub-components ---
 
 const CodeBlock = memo(({ language, children }: { language: string, children?: React.ReactNode }) => {
   const [copied, setCopied] = useState(false);
@@ -61,9 +59,6 @@ const CodeBlock = memo(({ language, children }: { language: string, children?: R
     </div>
   );
 });
-
-// Mermaid wrapper that handles "Visual" vs "Code" toggle
-// (MermaidToggleWrapper removed as per user request for strict mode behavior)
 
 const ThinkingSection = memo(({ text, thinkingTime }: { text: string, thinkingTime?: number }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -122,12 +117,10 @@ const ThinkingSection = memo(({ text, thinkingTime }: { text: string, thinkingTi
   );
 });
 
-// Smooth LiveTimer using CSS Animation or Fast Interval for smoothness
 const LiveTimer = memo(({ startTime, label }: { startTime: number, label: string }) => {
   const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
-    // 80ms interval is smooth enough (12.5fps) for text without killing CPU
     const interval = setInterval(() => {
       setElapsed(Date.now() - startTime);
     }, 80);
@@ -141,10 +134,7 @@ const LiveTimer = memo(({ startTime, label }: { startTime: number, label: string
   );
 });
 
-// Single Message Item - Memoized for Performance
 const MessageItem = memo(({ msg, supportsThinking, showThinking, isLoadingMessage }: { msg: Message, supportsThinking: boolean, showThinking: boolean, isLoadingMessage: boolean }) => {
-
-  // Find friendly name for display
   const modelDisplayName = useMemo(() => {
     if (!msg.model) return null;
     for (const provider in AVAILABLE_MODELS) {
@@ -155,8 +145,6 @@ const MessageItem = memo(({ msg, supportsThinking, showThinking, isLoadingMessag
     return msg.model;
   }, [msg.model]);
 
-  // Custom Renderer for this message
-  // Includes logic to show toggle for mermaid
   const components = useMemo(() => ({
     code: ({ className, children, ...props }: { className?: string; children?: React.ReactNode }) => {
       const match = /language-(\w+)/.exec(className || '');
@@ -179,11 +167,11 @@ const MessageItem = memo(({ msg, supportsThinking, showThinking, isLoadingMessag
     ul: ({ children }: { children?: React.ReactNode }) => <ul className="list-disc pl-5 my-4 space-y-2 opacity-90">{children}</ul>,
     ol: ({ children }: { children?: React.ReactNode }) => <ol className="list-decimal pl-5 my-4 space-y-2 opacity-90">{children}</ol>,
     h1: ({ children }: { children?: React.ReactNode }) => <h1 className="text-2xl font-display font-bold mt-8 mb-4">{children}</h1>,
-    h2: ({ children }: { children?: React.ReactNode }) => <h2 className="text-xl font-display font-bold mt-6 mb-3 animate-in fade-in duration-700 fill-mode-both">{children}</h2>,
-    h3: ({ children }: { children?: React.ReactNode }) => <h3 className="text-lg font-display font-bold mt-5 mb-2 animate-in fade-in duration-700 fill-mode-both">{children}</h3>,
-    p: ({ children }: { children?: React.ReactNode }) => <p className="mb-4 last:mb-0 animate-in fade-in duration-700 fill-mode-both">{children}</p>,
-    li: ({ children }: { children?: React.ReactNode }) => <li className="animate-in fade-in duration-700 fill-mode-both">{children}</li>,
-    blockquote: ({ children }: { children?: React.ReactNode }) => <blockquote className="border-l-4 border-gray-200 dark:border-white/20 pl-4 italic my-4 opacity-70 animate-in fade-in duration-1000 fill-mode-both">{children}</blockquote>,
+    h2: ({ children }: { children?: React.ReactNode }) => <h2 className="text-xl font-display font-bold mt-6 mb-3">{children}</h2>,
+    h3: ({ children }: { children?: React.ReactNode }) => <h3 className="text-lg font-display font-bold mt-5 mb-2">{children}</h3>,
+    p: ({ children }: { children?: React.ReactNode }) => <p className="mb-4 last:mb-0">{children}</p>,
+    li: ({ children }: { children?: React.ReactNode }) => <li>{children}</li>,
+    blockquote: ({ children }: { children?: React.ReactNode }) => <blockquote className="border-l-4 border-gray-200 dark:border-white/20 pl-4 italic my-4 opacity-70">{children}</blockquote>,
     a: ({ href, children }: { href?: string; children?: React.ReactNode }) => (
       <a
         href={href}
@@ -209,7 +197,6 @@ const MessageItem = memo(({ msg, supportsThinking, showThinking, isLoadingMessag
   const handleCopy = (e: React.MouseEvent) => {
     e.stopPropagation();
     navigator.clipboard.writeText(msg.text);
-    // You could add a toast or local state here
   };
 
   const handleDownload = (e: React.MouseEvent) => {
@@ -246,7 +233,6 @@ const MessageItem = memo(({ msg, supportsThinking, showThinking, isLoadingMessag
             : 'bg-white/40 dark:bg-white/5 backdrop-blur-md border border-black/5 dark:border-white/5 rounded-2xl md:rounded-3xl rounded-tl-sm md:rounded-tl-md text-gray-800 dark:text-gray-200 shadow-sm'}
           `}
       >
-        {/* Message Actions */}
         <div className={`
           absolute top-2 ${msg.role === 'user' ? 'right-full mr-2' : 'left-full ml-2'} 
           flex flex-col gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-200
@@ -298,7 +284,6 @@ const MessageItem = memo(({ msg, supportsThinking, showThinking, isLoadingMessag
           </div>
         ))}
 
-        {/* Response time indicator */}
         {msg.role === 'model' && (
           <div className="mt-4 pt-3 border-t border-black/5 dark:border-white/5 flex flex-wrap items-center gap-x-4 gap-y-2 text-[10px] text-gray-400 dark:text-zinc-600 font-medium uppercase tracking-wide">
             {modelDisplayName && (
@@ -338,8 +323,9 @@ const MessageItem = memo(({ msg, supportsThinking, showThinking, isLoadingMessag
 
 export const ChatArea: React.FC<ChatAreaProps> = ({
   onSuggestionClick,
+  optimisticMessages
 }) => {
-  const { messages, isLoading } = useChatStore();
+  const { messages, streamingMessage, isLoading } = useChatStore();
   const { showThinking } = useUIStore();
   const { llmConfig, keyCapabilities } = useConfigStore();
 
@@ -361,14 +347,24 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
   const scrollRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const lastMessageText = messages[messages.length - 1]?.text || "";
-  const lastMessageThinking = messages[messages.length - 1]?.thinking || "";
+  // Combine static and dynamic track
+  const allMessages = useMemo(() => {
+    const baseMessages = optimisticMessages || messages;
+    const list = [...baseMessages];
+    if (streamingMessage) {
+      list.push(streamingMessage);
+    }
+    return list;
+  }, [messages, optimisticMessages, streamingMessage]);
+
+  const lastMessageText = allMessages[allMessages.length - 1]?.text || "";
+  const lastMessageThinking = allMessages[allMessages.length - 1]?.thinking || "";
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [messages.length, lastMessageText.length, lastMessageThinking.length, isLoading]);
+  }, [allMessages.length, lastMessageText.length, lastMessageThinking.length, isLoading]);
 
   const suggestions = [
     { label: "Find Bugs", prompt: "Analyze the attached code and identify any potential bugs or logic errors." },
@@ -379,7 +375,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
 
   return (
     <div ref={containerRef} className="flex-1 overflow-y-auto px-4 md:px-12 py-6 md:py-8 space-y-8 md:space-y-10 custom-scrollbar scroll-smooth">
-      {messages.length === 0 && (
+      {allMessages.length === 0 && (
         <div className="flex flex-col justify-start pt-4 md:justify-center md:pt-0 h-full min-h-[400px] max-w-3xl mx-auto">
           <div className="mb-8">
             <motion.span
@@ -431,29 +427,17 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
       )}
 
       <AnimatePresence mode="popLayout">
-        {messages.map((msg, idx) => (
+        {allMessages.map((msg, idx) => (
           <MessageItem
             key={msg.id}
             msg={msg}
             supportsThinking={supportsThinking}
             showThinking={showThinking}
-            isLoadingMessage={isLoading && idx === messages.length - 1}
+            isLoadingMessage={isLoading && idx === allMessages.length - 1}
           />
         ))}
       </AnimatePresence>
 
-      {isLoading && (messages.length === 0 || messages[messages.length - 1].role !== 'model') && (
-        <div className="flex gap-6 max-w-4xl mx-auto items-start message-item mt-4">
-          <div className="w-10 h-10 rounded-full bg-black dark:bg-white flex items-center justify-center shrink-0 shadow-lg">
-            <Sparkles className="w-5 h-5 text-white dark:text-black animate-pulse" />
-          </div>
-          <div className="flex items-center gap-2 mt-4 bg-white/20 dark:bg-white/5 py-3 px-5 rounded-2xl backdrop-blur-sm">
-            <span className="w-2 h-2 bg-gray-400 dark:bg-zinc-500 rounded-full animate-bounce"></span>
-            <span className="w-2 h-2 bg-gray-400 dark:bg-zinc-500 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-            <span className="w-2 h-2 bg-gray-400 dark:bg-zinc-500 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-          </div>
-        </div>
-      )}
       <div ref={scrollRef} className="h-4" />
     </div>
   );
