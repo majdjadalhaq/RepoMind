@@ -64,7 +64,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = () => {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.95 }}
               transition={{ duration: 0.3, ease: "easeOut" }}
-              className="absolute top-full left-0 mt-3 w-72 bg-white/70 dark:bg-black/60 backdrop-blur-2xl rounded-2xl border border-white/20 dark:border-white/10 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] z-50 overflow-hidden"
+              className="absolute top-full left-0 md:left-auto md:right-0 mt-3 w-[calc(100vw-3rem)] md:w-80 bg-white/70 dark:bg-black/60 backdrop-blur-2xl rounded-2xl border border-white/20 dark:border-white/10 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] z-50 overflow-hidden"
             >
               <div className="p-2 max-h-[350px] overflow-y-auto custom-scrollbar">
                 <div className="space-y-4 p-2">

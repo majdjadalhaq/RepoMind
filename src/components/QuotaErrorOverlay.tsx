@@ -34,7 +34,7 @@ export const QuotaErrorOverlay: React.FC<QuotaErrorOverlayProps> = ({ sendMessag
           exit={{ opacity: 0, scale: 0.9, y: 20 }}
           className="relative w-full max-w-lg max-h-[90vh] bg-white dark:bg-zinc-900 rounded-[2.5rem] shadow-2xl border border-gray-100 dark:border-white/10 overflow-hidden flex flex-col"
         >
-          <div className="p-8 md:p-10 text-center flex-1 overflow-y-auto custom-scrollbar">
+          <div className="p-6 md:p-10 text-center flex-1 overflow-y-auto custom-scrollbar">
             <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 ${quotaError.type === 'quota' ? 'bg-amber-100 dark:bg-amber-500/10' : 'bg-red-100 dark:bg-red-500/10'}`}>
               {quotaError.type === 'quota' ? (
                 <Box className="w-10 h-10 text-amber-600 dark:text-amber-500" />
