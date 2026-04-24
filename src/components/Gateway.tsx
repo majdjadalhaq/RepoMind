@@ -1,8 +1,9 @@
-import { ArrowRight, Check, ExternalLink, Key, Loader2,XCircle } from 'lucide-react';
+import { ArrowRight, Check, ExternalLink, Key, Loader2, Moon, Sun, XCircle } from 'lucide-react';
 import { motion } from 'motion/react';
 import React, { useState } from 'react';
 
 import { useConfigStore } from '../application/store/config-store';
+import { useUIStore } from '../application/store/ui-store';
 import { LLMConfig, LLMProvider } from '../core/types';
 import { verifyKey } from '../infrastructure/keyVerification';
 
@@ -42,6 +43,7 @@ const API_LINKS: Record<LLMProvider, { url: string; label: string }> = {
 
 export const Gateway: React.FC<GatewayProps> = ({ onComplete }) => {
   const { llmConfig: initialConfig } = useConfigStore();
+  const { isDark, toggleDark } = useUIStore();
 
   const [customKeys, setCustomKeys] = useState(initialConfig.apiKeys);
   const [isVerifying, setIsVerifying] = useState(false);
@@ -123,6 +125,16 @@ export const Gateway: React.FC<GatewayProps> = ({ onComplete }) => {
       transition={{ duration: 0.6 }}
       className="fixed inset-0 z-[100] bg-white dark:bg-black overflow-y-auto transition-colors duration-500"
     >
+      <div className="absolute top-6 right-6 z-[110]">
+        <button
+          onClick={toggleDark}
+          className="p-3 rounded-2xl bg-gray-50 dark:bg-zinc-900 border border-gray-100 dark:border-white/10 text-gray-500 hover:text-black dark:hover:text-white transition-all shadow-sm"
+          aria-label="Toggle Theme"
+        >
+          {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+        </button>
+      </div>
+
       <div className="min-h-full flex items-center justify-center p-4 md:p-6">
         <div className="max-w-xl w-full">
           {/* Header */}

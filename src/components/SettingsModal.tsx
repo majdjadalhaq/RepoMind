@@ -377,7 +377,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                                                     <h4 className="text-xs font-black text-black/30 dark:text-white/30 uppercase tracking-[0.2em] mb-6">Interface Theme</h4>
                                                     <div className="grid grid-cols-2 gap-4">
                                                         <button
-                                                            onClick={() => !isDark || onToggleTheme()}
+                                                            onClick={() => isDark && onToggleTheme()}
                                                             className={`relative group flex flex-col items-center gap-4 p-8 rounded-[2rem] border transition-all duration-300 ${!isDark
                                                                 ? 'bg-black text-white border-black shadow-xl shadow-black/10'
                                                                 : 'bg-black/5 dark:bg-white/5 border-black/5 dark:border-white/5 hover:border-black/20 dark:hover:border-white/20 text-black/40 dark:text-white/40'
@@ -398,7 +398,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                                                         </button>
 
                                                         <button
-                                                            onClick={() => isDark || onToggleTheme()}
+                                                            onClick={() => !isDark && onToggleTheme()}
                                                             className={`relative group flex flex-col items-center gap-4 p-8 rounded-[2rem] border transition-all duration-300 ${isDark
                                                                 ? 'bg-zinc-800 text-white border-white/10 shadow-xl shadow-black/40'
                                                                 : 'bg-black/5 dark:bg-white/5 border-black/5 dark:border-white/5 hover:border-black/20 dark:hover:border-white/20 text-black/40 dark:text-white/40'
